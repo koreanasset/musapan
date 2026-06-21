@@ -238,7 +238,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authModal, setAuthModal] = useState(null);
-  const [authForm, setAuthForm] = useState({ email: "", password: "", password2: "", nickname: "" });
+  const [authForm, setAuthForm] = useState({ email: "", password: "", password2: "", nickname: "", keepLoggedIn: true });
   const [authError, setAuthError] = useState("");
   const [authInfo, setAuthInfo] = useState("");
   const [authStep, setAuthStep] = useState("form");
@@ -447,7 +447,7 @@ export default function App() {
   }
 
   function resetAuthForm() {
-    setAuthForm({ email: "", password: "", password2: "", nickname: "" });
+    setAuthForm({ email: "", password: "", password2: "", nickname: "", keepLoggedIn: true });
     setAuthError("");
     setAuthInfo("");
     setAuthStep("form");
@@ -930,7 +930,7 @@ export default function App() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
           <button onClick={() => setView({ page: "home", category: null, subcategory: null, postId: null })} className="flex items-center gap-2 shrink-0">
-            <img src="/logo.png" alt="코리안에셋" className="h-7 w-auto shrink-0" />
+            <img src="/logo.png" alt="코리안에셋" className="h-5 w-auto shrink-0" />
             <span className="text-2xl" style={{ fontFamily: selectedFont.family, fontWeight: selectedFont.weight, letterSpacing: selectedFont.ls }}>
               <span style={{ color: "#111827" }}>코리안</span><span style={{ color: "#fe0000" }}>에셋</span>
             </span>
@@ -1163,7 +1163,7 @@ export default function App() {
                           </div>
                         </div>
                       </button>
-                      <ChevronRight size={16} className="text-gray-300 shrink-0" onClick={() => openPost(p.id)} />
+                      <ChevronRight size={16} className="text-gray-300 shrink-0 cursor-pointer" onClick={() => openPost(p.id)} />
                     </div>
                   );
                 });
@@ -1256,7 +1256,7 @@ export default function App() {
                           </div>
                         </div>
                       </button>
-                      <ChevronRight size={16} className="text-gray-300 shrink-0" onClick={() => openPost(p.id)} />
+                      <ChevronRight size={16} className="text-gray-300 shrink-0 cursor-pointer" onClick={() => openPost(p.id)} />
                     </div>
                   ))}
                 </>
@@ -1460,7 +1460,7 @@ export default function App() {
       </footer>
 
       {legalModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setLegalModal(null)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setLegalModal(null)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">
@@ -1544,7 +1544,7 @@ export default function App() {
       )}
 
       {authModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setAuthModal(null)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setAuthModal(null)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">
@@ -1630,6 +1630,25 @@ export default function App() {
 
                 {authError && <p className="text-xs text-red-500 mt-2">{authError}</p>}
 
+                {authModal === "login" && (
+                  <div className="mt-3">
+                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={authForm.keepLoggedIn}
+                        onChange={e => setAuthForm({ ...authForm, keepLoggedIn: e.target.checked })}
+                        className="rounded cursor-pointer"
+                      />
+                      로그인 상태 유지
+                    </label>
+                    {authForm.keepLoggedIn && (
+                      <p className="text-[11px] text-amber-700 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 leading-relaxed">
+                        ⚠️ 공용 PC, 회사·학교 컴퓨터, 다른 사람과 함께 쓰는 기기에서는 이 옵션을 체크하지 마세요. 로그아웃하지 않으면 다음에 이 기기를 쓰는 사람도 내 계정으로 접속될 수 있어요. 사용 후에는 꼭 로그아웃해주세요.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <button
                   onClick={authModal === "login" ? handleLogin : handleSignup}
                   className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 mt-4"
@@ -1672,7 +1691,7 @@ export default function App() {
       )}
 
       {profileView && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setProfileView(null)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setProfileView(null)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="flex justify-end">
               <button onClick={() => setProfileView(null)}><X size={18} className="text-gray-400" /></button>
@@ -1707,7 +1726,7 @@ export default function App() {
       )}
 
       {showNotifications && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setShowNotifications(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowNotifications(false)}>
           <div className="bg-white rounded-xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2"><Bell size={18} />알림</h3>
@@ -1744,7 +1763,7 @@ export default function App() {
       )}
 
       {showMessages && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setShowMessages(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowMessages(false)}>
           <div className="bg-white rounded-xl w-full max-w-2xl h-[600px] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2"><Mail size={18} />쪽지</h3>
@@ -1839,7 +1858,7 @@ export default function App() {
       )}
 
       {showCompose && currentUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-30 px-4" onClick={() => setShowCompose(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 px-4" onClick={() => setShowCompose(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">쪽지 쓰기</h3>
@@ -1875,7 +1894,7 @@ export default function App() {
       )}
 
       {showProfile && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setShowProfile(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowProfile(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">내정보</h3>
@@ -1944,7 +1963,7 @@ export default function App() {
       )}
 
       {showInquiry && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setShowInquiry(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowInquiry(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">1:1문의</h3>
@@ -2003,7 +2022,7 @@ export default function App() {
       )}
 
       {showWrite && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20 px-4" onClick={() => setShowWrite(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowWrite(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">글쓰기</h3>

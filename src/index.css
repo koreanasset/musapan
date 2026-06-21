@@ -3,3 +3,10 @@
 body {
   margin: 0;
 }
+
+button:not(:disabled),
+a,
+[role="button"],
+.cursor-pointer {
+  cursor: pointer;
+}
