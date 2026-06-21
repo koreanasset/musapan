@@ -738,14 +738,18 @@ export default function App() {
     const mapped = mapComment(data);
     setPosts(prev => prev.map(p => p.id === currentPost.id ? { ...p, comments: [...p.comments, mapped] } : p));
     await addPointsTo(currentUser, 1);
+    console.log("[notif-debug] submitComment", { postAuthor: currentPost.author, me: currentUser.nickname });
     if (currentPost.author !== currentUser.nickname) {
       const authorProfile = await findUserOrFetch(currentPost.author);
+      console.log("[notif-debug] authorProfile", authorProfile);
       if (authorProfile) {
-        addNotificationFor(authorProfile.id, {
+        const { data: nData, error: nError } = await supabase.from("notifications").insert({
+          user_id: authorProfile.id,
           type: "comment",
           text: `${currentUser.nickname}님이 내 글 "${currentPost.title}"에 댓글을 남겼습니다.`,
           link: { page: "detail", postId: currentPost.id },
-        });
+        }).select();
+        console.log("[notif-debug] insert result", { nData, nError });
       }
     }
     setCommentDraft("");
