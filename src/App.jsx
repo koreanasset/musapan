@@ -1583,6 +1583,7 @@ export default function App() {
                   type="email"
                   value={authForm.email}
                   onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
+                  onKeyDown={e => { if (e.key === "Enter") startForgotPassword(); }}
                   placeholder="가입한 이메일"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
                 />
@@ -1599,6 +1600,7 @@ export default function App() {
                     type="email"
                     value={authForm.email}
                     onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
+                    onKeyDown={e => { if (e.key === "Enter") (authModal === "login" ? handleLogin : handleSignup)(); }}
                     placeholder="이메일"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                   />
@@ -1606,6 +1608,7 @@ export default function App() {
                     type="password"
                     value={authForm.password}
                     onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
+                    onKeyDown={e => { if (e.key === "Enter") (authModal === "login" ? handleLogin : handleSignup)(); }}
                     placeholder="비밀번호 (6자 이상)"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                   />
@@ -1615,12 +1618,14 @@ export default function App() {
                         type="password"
                         value={authForm.password2}
                         onChange={e => setAuthForm({ ...authForm, password2: e.target.value })}
+                        onKeyDown={e => { if (e.key === "Enter") handleSignup(); }}
                         placeholder="비밀번호 확인"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                       />
                       <input
                         value={authForm.nickname}
                         onChange={e => setAuthForm({ ...authForm, nickname: e.target.value })}
+                        onKeyDown={e => { if (e.key === "Enter") handleSignup(); }}
                         placeholder="닉네임"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                       />
