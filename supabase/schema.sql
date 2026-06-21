@@ -182,3 +182,6 @@ create policy "avatars_select_all" on storage.objects for select using (bucket_i
 create policy "avatars_insert_own" on storage.objects for insert with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "avatars_update_own" on storage.objects for update using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "avatars_delete_own" on storage.objects for delete using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 알림을 실시간으로 받기 위해 Realtime publication에 추가
+alter publication supabase_realtime add table notifications;

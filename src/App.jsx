@@ -415,6 +415,18 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, [loadProfileFor]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    const channel = supabase
+      .channel(`notifications-${currentUser.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${currentUser.id}` }, (payload) => {
+        const n = payload.new;
+        setNotifications(prev => [{ id: n.id, type: n.type, text: n.text, read: n.read, link: n.link, time: formatDate(n.created_at) }, ...prev]);
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [currentUser?.id]);
+
   const currentPost = posts.find(p => p.id === view.postId);
   const isBlockedByMe = (nickname) => currentUser && (currentUser.blocked || []).includes(nickname);
   const findUser = (nickname) => profiles.find(u => u.nickname === nickname);
@@ -762,6 +774,13 @@ export default function App() {
 
     const authorProfile = findUser(post.author);
     if (authorProfile && pointsDelta !== 0) addPointsTo(authorProfile, pointsDelta);
+    if (authorProfile && type === "like" && !hasLiked) {
+      addNotificationFor(authorProfile.id, {
+        type: "like",
+        text: `${currentUser.nickname}님이 내 글 "${post.title}"을 추천했습니다.`,
+        link: { page: "detail", postId: post.id },
+      });
+    }
   }
 
   async function voteOnComment(postId, commentId, type) {
@@ -799,6 +818,13 @@ export default function App() {
 
     const authorProfile = findUser(comment.author);
     if (authorProfile && pointsDelta !== 0) addPointsTo(authorProfile, pointsDelta);
+    if (authorProfile && type === "like" && !hasLiked) {
+      addNotificationFor(authorProfile.id, {
+        type: "like",
+        text: `${currentUser.nickname}님이 내 댓글을 추천했습니다.`,
+        link: { page: "detail", postId },
+      });
+    }
   }
 
   function requireAuth(fn) {
