@@ -84,6 +84,16 @@ function formatDate(iso) {
   return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
+async function getClientIp() {
+  try {
+    const res = await fetch("/api/ip");
+    const data = await res.json();
+    return data.ip || null;
+  } catch {
+    return null;
+  }
+}
+
 const AVATAR_COLORS = ["#f87171", "#fb923c", "#fbbf24", "#34d399", "#22d3ee", "#60a5fa", "#a78bfa", "#f472b6"];
 function avatarColorFor(nickname) {
   let hash = 0;
@@ -246,6 +256,9 @@ export default function App() {
   const [resetNewPassword2, setResetNewPassword2] = useState("");
   const [showWrite, setShowWrite] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null });
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
   const [commentDraft, setCommentDraft] = useState("");
   const [search, setSearch] = useState("");
   const [showInquiry, setShowInquiry] = useState(false);
@@ -442,8 +455,56 @@ export default function App() {
     const validCategory = BOARD_CATEGORIES.some(c => c.id === view.category) ? view.category : "community";
     let prefillSub = view.category === validCategory ? (view.subcategory || null) : null;
     if (prefillSub && !canWriteToSubcategory(prefillSub)) prefillSub = null;
+    setEditingPostId(null);
     setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub });
     setShowWrite(true);
+  }
+
+  function openEditPost(post) {
+    setEditingPostId(post.id);
+    setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory });
+    setShowWrite(true);
+  }
+
+  function canModify(authorNickname) {
+    return !!currentUser && (currentUser.nickname === authorNickname || currentUser.role === "master");
+  }
+
+  async function deletePost(post) {
+    if (!window.confirm("게시물을 삭제하시겠습니까? 댓글도 함께 삭제되며 복구할 수 없습니다.")) return;
+    const { error } = await supabase.from("posts").delete().eq("id", post.id);
+    if (error) return;
+    setPosts(prev => prev.filter(p => p.id !== post.id));
+    setView({ page: "category", category: post.category, subcategory: post.subcategory || null, postId: null });
+  }
+
+  function startEditComment(c) {
+    setEditingCommentId(c.id);
+    setEditCommentText(c.text);
+  }
+
+  function cancelEditComment() {
+    setEditingCommentId(null);
+    setEditCommentText("");
+  }
+
+  async function saveEditComment(postId, commentId) {
+    if (!editCommentText.trim()) return;
+    const { error } = await supabase.from("comments").update({ text: editCommentText }).eq("id", commentId);
+    if (error) return;
+    setPosts(prev => prev.map(p => p.id === postId ? {
+      ...p,
+      comments: p.comments.map(c => c.id === commentId ? { ...c, text: editCommentText } : c),
+    } : p));
+    setEditingCommentId(null);
+    setEditCommentText("");
+  }
+
+  async function deleteComment(postId, commentId) {
+    if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
+    const { error } = await supabase.from("comments").delete().eq("id", commentId);
+    if (error) return;
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p));
   }
 
   function resetAuthForm() {
@@ -575,12 +636,32 @@ export default function App() {
   async function submitPost() {
     if (!newPost.title.trim() || !newPost.content.trim() || !currentUser) return;
     if (newPost.subcategory && !canWriteToSubcategory(newPost.subcategory)) return;
+
+    if (editingPostId) {
+      const { data, error } = await supabase.from("posts").update({
+        category: newPost.category,
+        subcategory: newPost.subcategory || null,
+        title: newPost.title,
+        content: newPost.content,
+      }).eq("id", editingPostId).select(POST_SELECT).single();
+      if (error || !data) return;
+      const mapped = mapPost(data);
+      setPosts(prev => prev.map(p => p.id === editingPostId ? mapped : p));
+      setEditingPostId(null);
+      setNewPost({ title: "", content: "", category: "community", subcategory: null });
+      setShowWrite(false);
+      setView({ page: "detail", category: null, subcategory: null, postId: mapped.id });
+      return;
+    }
+
+    const ip = await getClientIp();
     const { data, error } = await supabase.from("posts").insert({
       category: newPost.category,
       subcategory: newPost.subcategory || null,
       title: newPost.title,
       content: newPost.content,
       author_id: currentUser.id,
+      ip,
     }).select(POST_SELECT).single();
     if (error || !data) return;
     const mapped = mapPost(data);
@@ -593,10 +674,12 @@ export default function App() {
 
   async function submitComment() {
     if (!commentDraft.trim() || !currentPost || !currentUser) return;
+    const ip = await getClientIp();
     const { data, error } = await supabase.from("comments").insert({
       post_id: currentPost.id,
       author_id: currentUser.id,
       text: commentDraft,
+      ip,
     }).select("*, profiles!comments_author_id_fkey(nickname, role, points)").single();
     if (error || !data) return;
     const mapped = mapComment(data);
@@ -1313,35 +1396,47 @@ export default function App() {
                     const alreadyLiked = currentUser && currentPost.likedBy.includes(currentUser.id);
                     const alreadyDisliked = currentUser && currentPost.dislikedBy.includes(currentUser.id);
                     return (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => voteOnPost(currentPost.id, "like")}
-                          disabled={isOwnPost || alreadyLiked}
-                          title={isOwnPost ? "본인 글은 추천할 수 없습니다" : undefined}
-                          className={`flex items-center gap-1.5 text-sm border rounded-full px-3 py-1.5 transition ${
-                            alreadyLiked
-                              ? "border-red-200 bg-red-50 text-red-500 cursor-default"
-                              : isOwnPost
-                              ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                              : "border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-500"
-                          }`}
-                        >
-                          <ThumbsUp size={14} /> 추천 {currentPost.likes}
-                        </button>
-                        <button
-                          onClick={() => voteOnPost(currentPost.id, "dislike")}
-                          disabled={isOwnPost || alreadyDisliked}
-                          title={isOwnPost ? "본인 글은 비추천할 수 없습니다" : undefined}
-                          className={`flex items-center gap-1.5 text-sm border rounded-full px-3 py-1.5 transition ${
-                            alreadyDisliked
-                              ? "border-blue-200 bg-blue-50 text-blue-500 cursor-default"
-                              : isOwnPost
-                              ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                              : "border-gray-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-500"
-                          }`}
-                        >
-                          <ThumbsDown size={14} /> 비추천 {currentPost.dislikes || 0}
-                        </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => voteOnPost(currentPost.id, "like")}
+                            disabled={isOwnPost || alreadyLiked}
+                            title={isOwnPost ? "본인 글은 추천할 수 없습니다" : undefined}
+                            className={`flex items-center gap-1.5 text-sm border rounded-full px-3 py-1.5 transition ${
+                              alreadyLiked
+                                ? "border-red-200 bg-red-50 text-red-500 cursor-default"
+                                : isOwnPost
+                                ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                : "border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-500"
+                            }`}
+                          >
+                            <ThumbsUp size={14} /> 추천 {currentPost.likes}
+                          </button>
+                          <button
+                            onClick={() => voteOnPost(currentPost.id, "dislike")}
+                            disabled={isOwnPost || alreadyDisliked}
+                            title={isOwnPost ? "본인 글은 비추천할 수 없습니다" : undefined}
+                            className={`flex items-center gap-1.5 text-sm border rounded-full px-3 py-1.5 transition ${
+                              alreadyDisliked
+                                ? "border-blue-200 bg-blue-50 text-blue-500 cursor-default"
+                                : isOwnPost
+                                ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                : "border-gray-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-500"
+                            }`}
+                          >
+                            <ThumbsDown size={14} /> 비추천 {currentPost.dislikes || 0}
+                          </button>
+                        </div>
+                        {canModify(currentPost.author) && (
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => openEditPost(currentPost)} className="text-xs text-gray-400 border border-gray-200 rounded-full px-3 py-1.5 hover:bg-gray-50">
+                              수정
+                            </button>
+                            <button onClick={() => deletePost(currentPost)} className="text-xs text-gray-400 border border-gray-200 rounded-full px-3 py-1.5 hover:bg-red-50 hover:border-red-200 hover:text-red-500">
+                              삭제
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -1391,7 +1486,21 @@ export default function App() {
                               <NicknameButton nickname={c.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(c.author, e)} className="font-bold text-sm text-gray-700 hover:text-indigo-600" />
                               <span className="text-[11px] text-gray-300">IP: {maskIp(c.ip, currentUser?.role === "master")}</span>
                             </div>
-                            <p className="text-gray-600">{c.text}</p>
+                            {editingCommentId === c.id ? (
+                              <div className="flex gap-1.5 mt-1">
+                                <input
+                                  value={editCommentText}
+                                  onChange={e => setEditCommentText(e.target.value)}
+                                  onKeyDown={e => e.key === "Enter" && saveEditComment(currentPost.id, c.id)}
+                                  className="flex-1 px-2 py-1 text-sm bg-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
+                                  autoFocus
+                                />
+                                <button onClick={() => saveEditComment(currentPost.id, c.id)} className="text-xs text-indigo-600 font-medium px-2">저장</button>
+                                <button onClick={cancelEditComment} className="text-xs text-gray-400 px-2">취소</button>
+                              </div>
+                            ) : (
+                              <p className="text-gray-600">{c.text}</p>
+                            )}
                             <div className="mt-1 flex items-center gap-1.5">
                               <button
                                 onClick={() => voteOnComment(currentPost.id, c.id, "like")}
@@ -1421,6 +1530,12 @@ export default function App() {
                               >
                                 <ThumbsDown size={10} /> {c.dislikes || 0}
                               </button>
+                              {canModify(c.author) && editingCommentId !== c.id && (
+                                <>
+                                  <button onClick={() => startEditComment(c)} className="text-[11px] text-gray-400 hover:underline px-1">수정</button>
+                                  <button onClick={() => deleteComment(currentPost.id, c.id)} className="text-[11px] text-gray-400 hover:text-red-500 hover:underline px-1">삭제</button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2022,11 +2137,11 @@ export default function App() {
       )}
 
       {showWrite && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowWrite(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => { setShowWrite(false); setEditingPostId(null); }}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg">글쓰기</h3>
-              <button onClick={() => setShowWrite(false)}><X size={18} className="text-gray-400" /></button>
+              <h3 className="font-bold text-lg">{editingPostId ? "글 수정" : "글쓰기"}</h3>
+              <button onClick={() => { setShowWrite(false); setEditingPostId(null); }}><X size={18} className="text-gray-400" /></button>
             </div>
             <div className="flex gap-1.5 mb-3 flex-wrap">
               {BOARD_CATEGORIES.map(c => (
@@ -2087,7 +2202,9 @@ export default function App() {
               rows={6}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 resize-none"
             />
-            <button onClick={submitPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">등록하기 (+5P)</button>
+            <button onClick={submitPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
+              {editingPostId ? "수정하기" : "등록하기 (+5P)"}
+            </button>
           </div>
         </div>
       )}
