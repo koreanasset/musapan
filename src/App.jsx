@@ -930,23 +930,7 @@ export default function App() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
           <button onClick={() => setView({ page: "home", category: null, subcategory: null, postId: null })} className="flex items-center gap-2 shrink-0">
-            <svg width="40" height="24" viewBox="0 0 200 100" className="shrink-0">
-              <defs>
-                <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#fe0000" />
-                  <stop offset="20%" stopColor="#ff8c00" />
-                  <stop offset="40%" stopColor="#ffd400" />
-                  <stop offset="60%" stopColor="#22c55e" />
-                  <stop offset="80%" stopColor="#0ea5e9" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-              <path d="M4,16 L94,38 L90,84 L16,92 Z" fill="#111827" />
-              <path d="M196,16 L106,38 L110,84 L184,92 Z" fill="#111827" />
-              <path d="M10,24 L86,42 L82,78 L20,86 Z" fill="url(#lensGrad)" />
-              <path d="M190,24 L114,42 L118,78 L180,86 Z" fill="url(#lensGrad)" />
-              <path d="M94,38 Q100,48 106,38" fill="none" stroke="#111827" strokeWidth="8" strokeLinecap="round" />
-            </svg>
+            <img src="/logo.png" alt="코리안에셋" className="h-7 w-auto shrink-0" />
             <span className="text-2xl" style={{ fontFamily: selectedFont.family, fontWeight: selectedFont.weight, letterSpacing: selectedFont.ls }}>
               <span style={{ color: "#111827" }}>코리안</span><span style={{ color: "#fe0000" }}>에셋</span>
             </span>
