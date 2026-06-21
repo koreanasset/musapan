@@ -101,7 +101,17 @@ function avatarColorFor(nickname) {
   return AVATAR_COLORS[hash];
 }
 
-function Avatar({ nickname, size = 28 }) {
+function Avatar({ nickname, size = 28, avatarUrl }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={nickname}
+        style={{ width: size, height: size }}
+        className="rounded-full object-cover shrink-0"
+      />
+    );
+  }
   return (
     <div
       style={{ width: size, height: size, backgroundColor: avatarColorFor(nickname) }}
@@ -799,6 +809,41 @@ export default function App() {
     setShowProfile(true);
   }
 
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setProfileError("이미지 파일만 업로드할 수 있습니다.");
+      setProfileSuccess("");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileError("2MB 이하의 이미지만 업로드할 수 있습니다.");
+      setProfileSuccess("");
+      return;
+    }
+    const ext = file.name.split(".").pop();
+    const path = `${currentUser.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (uploadError) {
+      setProfileError(uploadError.message);
+      setProfileSuccess("");
+      return;
+    }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+    const { error } = await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", currentUser.id);
+    if (error) {
+      setProfileError(error.message);
+      setProfileSuccess("");
+      return;
+    }
+    setCurrentUser(prev => ({ ...prev, avatar_url: avatarUrl }));
+    setProfiles(prev => prev.map(u => u.id === currentUser.id ? { ...u, avatar_url: avatarUrl } : u));
+    setProfileError("");
+    setProfileSuccess("프로필 사진이 변경되었습니다.");
+  }
+
   async function updateNickname() {
     if (!profileForm.nickname.trim()) {
       setProfileError("닉네임을 입력해주세요.");
@@ -1237,7 +1282,7 @@ export default function App() {
                           <span className="font-medium truncate">{p.title}</span>
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-                            <Avatar nickname={p.author} size={18} />
+                            <Avatar nickname={p.author} size={18} avatarUrl={findUser(p.author)?.avatar_url} />
                             <span>{rankEmoji(findUser(p.author))}</span>
                             <NicknameButton nickname={p.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(p.author, e)} className="hover:text-indigo-600" />
                             <span>{p.date}</span>
@@ -1330,7 +1375,7 @@ export default function App() {
                           {!canViewDetail(p) && <span className="text-[11px] text-gray-400 ml-1">🔒</span>}
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-                            <Avatar nickname={p.author} size={18} />
+                            <Avatar nickname={p.author} size={18} avatarUrl={findUser(p.author)?.avatar_url} />
                             <span>{rankEmoji(findUser(p.author))}</span>
                             <NicknameButton nickname={p.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(p.author, e)} className="hover:text-indigo-600" />
                             <span>{p.date}</span>
@@ -1382,7 +1427,7 @@ export default function App() {
                   {currentPost.subcategory && <span className="text-xs text-gray-400 ml-2">› {currentPost.subcategory}</span>}
                   <h1 className="text-xl font-bold mt-2 mb-3">{currentPost.title}</h1>
                   <div className="flex items-center gap-3 text-sm text-gray-400 pb-3 border-b border-gray-100">
-                    <Avatar nickname={currentPost.author} size={28} />
+                    <Avatar nickname={currentPost.author} size={28} avatarUrl={findUser(currentPost.author)?.avatar_url} />
                     <span>{rankEmoji(findUser(currentPost.author))}</span>
                     <NicknameButton nickname={currentPost.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(currentPost.author, e)} className="font-bold text-base text-gray-700 hover:text-indigo-600" />
                     <span className="text-gray-300">|</span>
@@ -1457,7 +1502,7 @@ export default function App() {
                         <div className="space-y-2">
                           {best.map(c => (
                             <div key={`best-${c.id}`} className="flex gap-2 text-sm items-start">
-                              <Avatar nickname={c.author} size={24} />
+                              <Avatar nickname={c.author} size={24} avatarUrl={findUser(c.author)?.avatar_url} />
                               <span className="mt-0.5">{rankEmoji(findUser(c.author))}</span>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1479,7 +1524,7 @@ export default function App() {
                       const alreadyDislikedComment = currentUser && c.dislikedBy.includes(currentUser.id);
                       return (
                         <div key={c.id} className="flex gap-2 text-sm items-start">
-                          <Avatar nickname={c.author} size={26} />
+                          <Avatar nickname={c.author} size={26} avatarUrl={findUser(c.author)?.avatar_url} />
                           <span className="mt-0.5">{rankEmoji(findUser(c.author))}</span>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -1812,7 +1857,7 @@ export default function App() {
               <button onClick={() => setProfileView(null)}><X size={18} className="text-gray-400" /></button>
             </div>
             <div className="flex justify-center mb-3">
-              <Avatar nickname={profileView} size={64} />
+              <Avatar nickname={profileView} size={64} avatarUrl={findUser(profileView)?.avatar_url} />
             </div>
             <h3 className="font-bold text-lg mb-1">{profileView}</h3>
             <p className="text-sm text-gray-400 mb-4 flex items-center justify-center gap-1">
@@ -2018,6 +2063,17 @@ export default function App() {
 
             <div className="mb-5 text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
               이메일: <span className="font-medium text-gray-600">{session?.user?.email}</span>
+            </div>
+
+            <div className="mb-5">
+              <p className="text-sm font-bold mb-2">프로필 사진</p>
+              <div className="flex items-center gap-3">
+                <Avatar nickname={currentUser.nickname} size={48} avatarUrl={currentUser.avatar_url} />
+                <label className="text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  사진 변경
+                  <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                </label>
+              </div>
             </div>
 
             <div className="mb-5">

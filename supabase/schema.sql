@@ -10,6 +10,7 @@ create table if not exists profiles (
   points int not null default 0,
   role text not null default 'user' check (role in ('user', 'staff', 'master')),
   blocked text[] not null default '{}',
+  avatar_url text,
   last_login_date date,
   created_at timestamptz not null default now()
 );
@@ -165,3 +166,19 @@ end;
 $$ language plpgsql security definer set search_path = public, auth;
 
 grant execute on function public.delete_user() to authenticated;
+
+-- 추가: profiles.avatar_url (이미 위 profiles 테이블에 있다면 무시됨)
+alter table profiles add column if not exists avatar_url text;
+
+-- =========================================
+-- 프로필 사진 저장용 Storage 버킷 (avatars)
+-- 누구나 읽기 가능, 본인 폴더(uid/...)에만 업로드/수정/삭제 가능
+-- =========================================
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+create policy "avatars_select_all" on storage.objects for select using (bucket_id = 'avatars');
+create policy "avatars_insert_own" on storage.objects for insert with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars_update_own" on storage.objects for update using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars_delete_own" on storage.objects for delete using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
