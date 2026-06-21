@@ -153,3 +153,15 @@ create policy "notifications_update_own" on notifications for update using (auth
 create policy "inquiries_select_own_or_master" on inquiries for select using (auth.uid() = author_id or is_master());
 create policy "inquiries_insert_own" on inquiries for insert with check (auth.uid() = author_id);
 create policy "inquiries_update_master" on inquiries for update using (is_master());
+
+-- =========================================
+-- 회원 탈퇴: auth.users 삭제 시 profiles 및 그 하위(posts/comments/messages/notifications/inquiries)가 cascade로 함께 삭제됨
+-- =========================================
+create or replace function public.delete_user()
+returns void as $$
+begin
+  delete from auth.users where id = auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public, auth;
+
+grant execute on function public.delete_user() to authenticated;

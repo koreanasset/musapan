@@ -253,7 +253,7 @@ export default function App() {
   const [inquiryForm, setInquiryForm] = useState({ title: "", content: "" });
   const [inquiryError, setInquiryError] = useState("");
   const [showProfile, setShowProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ nickname: "" });
+  const [profileForm, setProfileForm] = useState({ nickname: "", currentPassword: "", newPassword: "", newPassword2: "" });
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
   const [showMessages, setShowMessages] = useState(false);
@@ -710,7 +710,7 @@ export default function App() {
   }
 
   function openProfile() {
-    setProfileForm({ nickname: currentUser.nickname });
+    setProfileForm({ nickname: currentUser.nickname, currentPassword: "", newPassword: "", newPassword2: "" });
     setProfileError("");
     setProfileSuccess("");
     setShowProfile(true);
@@ -737,6 +737,55 @@ export default function App() {
     setProfiles(prev => prev.map(u => u.id === currentUser.id ? { ...u, nickname: profileForm.nickname } : u));
     setProfileError("");
     setProfileSuccess("닉네임이 변경되었습니다.");
+  }
+
+  async function updatePassword() {
+    const { currentPassword, newPassword, newPassword2 } = profileForm;
+    if (!currentPassword || !newPassword || !newPassword2) {
+      setProfileError("비밀번호 관련 항목을 모두 입력해주세요.");
+      setProfileSuccess("");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setProfileError("새 비밀번호는 6자 이상이어야 합니다.");
+      setProfileSuccess("");
+      return;
+    }
+    if (newPassword !== newPassword2) {
+      setProfileError("새 비밀번호가 일치하지 않습니다.");
+      setProfileSuccess("");
+      return;
+    }
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPassword,
+    });
+    if (signInError) {
+      setProfileError("현재 비밀번호가 일치하지 않습니다.");
+      setProfileSuccess("");
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setProfileError(error.message);
+      setProfileSuccess("");
+      return;
+    }
+    setProfileForm(prev => ({ ...prev, currentPassword: "", newPassword: "", newPassword2: "" }));
+    setProfileError("");
+    setProfileSuccess("비밀번호가 변경되었습니다.");
+  }
+
+  async function handleDeleteAccount() {
+    if (!window.confirm("정말로 탈퇴하시겠습니까?\n작성한 게시물, 댓글, 쪽지, 알림 등 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.")) return;
+    const { error } = await supabase.rpc("delete_user");
+    if (error) {
+      setProfileError(error.message);
+      return;
+    }
+    await supabase.auth.signOut();
+    setShowProfile(false);
+    setView({ page: "home", category: null, subcategory: null, postId: null });
   }
 
   function openMessages() {
@@ -1462,7 +1511,11 @@ export default function App() {
                   <p>본 사이트는 보험 가입자와 보험설계사 간의 정보 교류 및 중개의 장을 제공할 뿐이며, 실제 보험 상담, 계약의 체결·변경·해지 및 그로 인해 발생하는 모든 분쟁은 계약 당사자 간에 해결해야 합니다. 사이트는 보험 계약 내용이나 그로 인한 손해에 대해 어떠한 책임도 지지 않습니다.</p>
                 </div>
                 <div>
-                  <p className="font-bold text-gray-800 mb-1">제5조 (약관의 변경)</p>
+                  <p className="font-bold text-gray-800 mb-1">제5조 (회원 탈퇴)</p>
+                  <p>회원은 "내정보" 메뉴의 회원 탈퇴 기능을 통해 언제든지 자유롭게 탈퇴할 수 있습니다. 탈퇴 시 해당 회원이 작성한 게시물, 댓글, 쪽지, 알림, 1:1문의 등 모든 데이터는 즉시 영구적으로 삭제되며, 삭제된 데이터는 복구할 수 없습니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">제6조 (약관의 변경)</p>
                   <p>사이트는 필요한 경우 관련 법령을 위배하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경된 약관은 공지 후 효력이 발생합니다.</p>
                 </div>
               </div>
@@ -1480,11 +1533,15 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">3. 개인정보의 보유 및 이용 기간</p>
-                  <p>회원 탈퇴 시까지 보관하며, 탈퇴 시 관련 법령에 따라 일정 기간 보관 후 파기합니다.</p>
+                  <p>회원 탈퇴 시까지 보관합니다. 회원은 "내정보" 메뉴에서 직접 탈퇴를 신청할 수 있으며, 탈퇴 즉시 계정 정보 및 작성한 게시물·댓글·쪽지·알림·1:1문의 등 관련 데이터가 전부 삭제됩니다. 단, 관련 법령에서 별도로 보관 의무를 정한 정보가 있는 경우 해당 기간 동안 보관 후 파기합니다.</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">4. 개인정보의 제3자 제공</p>
                   <p>이용자의 개인정보는 원칙적으로 외부에 제공하지 않습니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">5. 회원 탈퇴 및 개인정보 파기 절차</p>
+                  <p>회원은 로그인 후 "내정보" 화면 하단의 "회원 탈퇴" 버튼을 통해 즉시 탈퇴를 신청할 수 있습니다. 탈퇴 신청과 동시에 회원의 계정 및 개인정보, 작성한 게시물·댓글·쪽지·알림·문의 내역이 데이터베이스에서 영구적으로 삭제되며, 이후 복구가 불가능합니다.</p>
                 </div>
               </div>
             )}
@@ -1860,12 +1917,44 @@ export default function App() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-              비밀번호 변경은 로그인 화면의 "비밀번호를 잊으셨나요?"를 이용해주세요.
-            </p>
+            <div className="mb-2">
+              <p className="text-sm font-bold mb-2">비밀번호 변경</p>
+              <div className="space-y-2">
+                <input
+                  type="password"
+                  value={profileForm.currentPassword}
+                  onChange={e => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                  placeholder="현재 비밀번호"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <input
+                  type="password"
+                  value={profileForm.newPassword}
+                  onChange={e => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                  placeholder="새 비밀번호 (6자 이상)"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <input
+                  type="password"
+                  value={profileForm.newPassword2}
+                  onChange={e => setProfileForm({ ...profileForm, newPassword2: e.target.value })}
+                  placeholder="새 비밀번호 확인"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <button onClick={updatePassword} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
+                  비밀번호 변경
+                </button>
+              </div>
+            </div>
 
             {profileError && <p className="text-xs text-red-500 mt-3">{profileError}</p>}
             {profileSuccess && <p className="text-xs text-emerald-600 mt-3">{profileSuccess}</p>}
+
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <button onClick={handleDeleteAccount} className="text-xs text-gray-400 hover:text-red-500 hover:underline">
+                회원 탈퇴
+              </button>
+            </div>
           </div>
         </div>
       )}
