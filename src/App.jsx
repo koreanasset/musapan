@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 
@@ -303,6 +303,29 @@ export default function App() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const isPoppingRef = useRef(false);
+
+  useEffect(() => {
+    history.replaceState(view, "");
+  }, []);
+
+  useEffect(() => {
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
+      return;
+    }
+    history.pushState(view, "");
+  }, [view]);
+
+  useEffect(() => {
+    function onPopState(e) {
+      isPoppingRef.current = true;
+      setView(e.state || { page: "home", category: null, subcategory: null, postId: null });
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   const loadProfiles = useCallback(async () => {
