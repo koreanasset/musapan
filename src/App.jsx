@@ -381,11 +381,12 @@ export default function App() {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
     if (data) {
       setCurrentUser(data);
+      loadProfiles();
       loadMessages(data.id);
       loadNotifications(data.id);
       loadInquiries(data);
     }
-  }, [loadMessages, loadNotifications, loadInquiries]);
+  }, [loadProfiles, loadMessages, loadNotifications, loadInquiries]);
 
   useEffect(() => {
     loadProfiles();
@@ -430,6 +431,13 @@ export default function App() {
   const currentPost = posts.find(p => p.id === view.postId);
   const isBlockedByMe = (nickname) => currentUser && (currentUser.blocked || []).includes(nickname);
   const findUser = (nickname) => profiles.find(u => u.nickname === nickname);
+
+  async function findUserOrFetch(nickname) {
+    const cached = findUser(nickname);
+    if (cached) return cached;
+    const { data } = await supabase.from("profiles").select("*").eq("nickname", nickname).maybeSingle();
+    return data || null;
+  }
 
   function canListPost(post) {
     const perm = BOARD_PERMISSIONS[post.subcategory];
@@ -731,7 +739,7 @@ export default function App() {
     setPosts(prev => prev.map(p => p.id === currentPost.id ? { ...p, comments: [...p.comments, mapped] } : p));
     await addPointsTo(currentUser, 1);
     if (currentPost.author !== currentUser.nickname) {
-      const authorProfile = findUser(currentPost.author);
+      const authorProfile = await findUserOrFetch(currentPost.author);
       if (authorProfile) {
         addNotificationFor(authorProfile.id, {
           type: "comment",
@@ -772,7 +780,7 @@ export default function App() {
     await supabase.from("posts").update({ likes: newLikes, dislikes: newDislikes, liked_by: newLikedBy, disliked_by: newDislikedBy }).eq("id", postId);
     setPosts(posts.map(p => p.id === postId ? { ...p, likes: newLikes, dislikes: newDislikes, likedBy: newLikedBy, dislikedBy: newDislikedBy } : p));
 
-    const authorProfile = findUser(post.author);
+    const authorProfile = await findUserOrFetch(post.author);
     if (authorProfile && pointsDelta !== 0) addPointsTo(authorProfile, pointsDelta);
     if (authorProfile && type === "like" && !hasLiked) {
       addNotificationFor(authorProfile.id, {
@@ -816,7 +824,7 @@ export default function App() {
       comments: p.comments.map(c => c.id === commentId ? { ...c, likes: newLikes, dislikes: newDislikes, likedBy: newLikedBy, dislikedBy: newDislikedBy } : c),
     } : p));
 
-    const authorProfile = findUser(comment.author);
+    const authorProfile = await findUserOrFetch(comment.author);
     if (authorProfile && pointsDelta !== 0) addPointsTo(authorProfile, pointsDelta);
     if (authorProfile && type === "like" && !hasLiked) {
       addNotificationFor(authorProfile.id, {
