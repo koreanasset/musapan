@@ -1554,7 +1554,7 @@ export default function App() {
             </div>
 
             {authStep === "resetPassword" ? (
-              <div>
+              <form onSubmit={e => { e.preventDefault(); confirmNewPassword(); }}>
                 <input
                   type="password"
                   value={resetNewPassword}
@@ -1570,37 +1570,35 @@ export default function App() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
                 />
                 {authError && <p className="text-xs text-red-500 mb-2">{authError}</p>}
-                <button onClick={confirmNewPassword} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">비밀번호 변경하기</button>
-              </div>
+                <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">비밀번호 변경하기</button>
+              </form>
             ) : authStep === "done" ? (
               <div>
                 <p className="text-sm text-gray-600 mb-4">{authInfo}</p>
                 <button onClick={() => setAuthModal(null)} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">확인</button>
               </div>
             ) : authModal === "forgot" ? (
-              <div>
+              <form onSubmit={e => { e.preventDefault(); startForgotPassword(); }}>
                 <input
                   type="email"
                   value={authForm.email}
                   onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
-                  onKeyDown={e => { if (e.key === "Enter") startForgotPassword(); }}
                   placeholder="가입한 이메일"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
                 />
                 {authError && <p className="text-xs text-red-500 mb-2">{authError}</p>}
-                <button onClick={startForgotPassword} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">재설정 링크 받기</button>
+                <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">재설정 링크 받기</button>
                 <p className="text-center text-xs text-gray-400 mt-3">
-                  <button onClick={() => openAuth("login")} className="text-indigo-600 font-medium">로그인으로 돌아가기</button>
+                  <button type="button" onClick={() => openAuth("login")} className="text-indigo-600 font-medium">로그인으로 돌아가기</button>
                 </p>
-              </div>
+              </form>
             ) : (
-              <>
+              <form onSubmit={e => { e.preventDefault(); (authModal === "login" ? handleLogin : handleSignup)(); }}>
                 <div className="space-y-2.5">
                   <input
                     type="email"
                     value={authForm.email}
                     onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
-                    onKeyDown={e => { if (e.key === "Enter") (authModal === "login" ? handleLogin : handleSignup)(); }}
                     placeholder="이메일"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                   />
@@ -1608,7 +1606,6 @@ export default function App() {
                     type="password"
                     value={authForm.password}
                     onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
-                    onKeyDown={e => { if (e.key === "Enter") (authModal === "login" ? handleLogin : handleSignup)(); }}
                     placeholder="비밀번호 (6자 이상)"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                   />
@@ -1618,14 +1615,12 @@ export default function App() {
                         type="password"
                         value={authForm.password2}
                         onChange={e => setAuthForm({ ...authForm, password2: e.target.value })}
-                        onKeyDown={e => { if (e.key === "Enter") handleSignup(); }}
                         placeholder="비밀번호 확인"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                       />
                       <input
                         value={authForm.nickname}
                         onChange={e => setAuthForm({ ...authForm, nickname: e.target.value })}
-                        onKeyDown={e => { if (e.key === "Enter") handleSignup(); }}
                         placeholder="닉네임"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
                       />
@@ -1655,7 +1650,7 @@ export default function App() {
                 )}
 
                 <button
-                  onClick={authModal === "login" ? handleLogin : handleSignup}
+                  type="submit"
                   className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 mt-4"
                 >
                   {authModal === "login" ? "로그인" : "가입하기"}
@@ -1664,15 +1659,15 @@ export default function App() {
                 <p className="text-center text-xs text-gray-400 mt-3">
                   {authModal === "login" ? (
                     <>
-                      계정이 없으신가요? <button onClick={() => openAuth("signup")} className="text-indigo-600 font-medium">회원가입</button>
+                      계정이 없으신가요? <button type="button" onClick={() => openAuth("signup")} className="text-indigo-600 font-medium">회원가입</button>
                       <br />
-                      <button onClick={() => openAuth("forgot")} className="text-gray-400 mt-1 hover:underline">비밀번호를 잊으셨나요?</button>
+                      <button type="button" onClick={() => openAuth("forgot")} className="text-gray-400 mt-1 hover:underline">비밀번호를 잊으셨나요?</button>
                     </>
                   ) : (
-                    <>이미 계정이 있으신가요? <button onClick={() => openAuth("login")} className="text-indigo-600 font-medium">로그인</button></>
+                    <>이미 계정이 있으신가요? <button type="button" onClick={() => openAuth("login")} className="text-indigo-600 font-medium">로그인</button></>
                   )}
                 </p>
-              </>
+              </form>
             )}
           </div>
         </div>
