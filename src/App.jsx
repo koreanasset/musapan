@@ -4,7 +4,7 @@ import { supabase } from "./lib/supabaseClient";
 
 const CATEGORIES = [
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"] },
-  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["주식추천AI", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "무사어판 칼럼"] },
+  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["주식추천AI", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"] },
   { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기"] },
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"] },
@@ -15,10 +15,19 @@ const CATEGORIES = [
 
 const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point");
 
+function slugify(name) {
+  return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
+}
+
+function findSubcategoryBySlug(cat, slug) {
+  if (!cat.sub) return null;
+  return cat.sub.find(s => slugify(s) === slug) || null;
+}
+
 function buildPath(view) {
   if (view.page === "detail" && view.postId) {
     if (view.category) {
-      const base = view.subcategory ? `/${view.category}/${encodeURIComponent(view.subcategory)}` : `/${view.category}`;
+      const base = view.subcategory ? `/${view.category}/${slugify(view.subcategory)}` : `/${view.category}`;
       return `${base}/${view.postId}`;
     }
     return `/post/${view.postId}`;
@@ -26,14 +35,14 @@ function buildPath(view) {
   if (view.page === "hot") return "/hot";
   if (view.page === "point") return "/point";
   if (view.page === "category" && view.category) {
-    if (view.subcategory) return `/${view.category}/${encodeURIComponent(view.subcategory)}`;
+    if (view.subcategory) return `/${view.category}/${slugify(view.subcategory)}`;
     return `/${view.category}`;
   }
   return "/";
 }
 
 function parseViewFromPath(pathname) {
-  const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  const parts = pathname.split("/").filter(Boolean);
   const home = { page: "home", category: null, subcategory: null, postId: null };
   if (parts.length === 0) return home;
   if (parts[0] === "post" && parts[1]) {
@@ -48,10 +57,10 @@ function parseViewFromPath(pathname) {
     const last = parts[parts.length - 1];
     const maybeId = Number(last);
     if (!Number.isNaN(maybeId)) {
-      const subcategory = parts.length >= 3 ? parts[1] : null;
+      const subcategory = parts.length >= 3 ? findSubcategoryBySlug(cat, parts[1]) : null;
       return { page: "detail", category: cat.id, subcategory, postId: maybeId };
     }
-    return { page: "category", category: cat.id, subcategory: parts[1] || null, postId: null };
+    return { page: "category", category: cat.id, subcategory: findSubcategoryBySlug(cat, parts[1]), postId: null };
   }
   return home;
 }
@@ -61,12 +70,12 @@ const BOARD_PERMISSIONS = {
   "Hey보험딜러 비교견적내줘": { write: "member", list: "guest", detail: "owner" },
   "내보험 진단하기": { write: "member", list: "guest", detail: "owner" },
   "주식추천AI": { write: "master", list: "guest", detail: "member" },
-  "무사어판 칼럼": { write: "master", list: "guest", detail: "guest" },
+  "칼럼": { write: "master", list: "guest", detail: "guest" },
 };
 
 const ADMIN_POINTS_CAP = 9999;
 const RANK_THRESHOLDS = [0, 50, 300, 600, 1200, 2000];
-const RANK_ORDER = ["이순신", "퇴계이황", "율곡이이", "세종대왕", "신사임당", "무사어판"];
+const RANK_ORDER = ["이순신", "퇴계이황", "율곡이이", "세종대왕", "신사임당", "백지수표"];
 
 function pointsProgress(user) {
   if (!user) return 0;
@@ -90,7 +99,7 @@ function pointLabel(user) {
   if (user.role === "master") return "마스터";
   if (user.role === "staff") return "스탭";
   const points = user.points || 0;
-  if (points >= 2000) return "무사어판";
+  if (points >= 2000) return "백지수표";
   if (points >= 1200) return "신사임당";
   if (points >= 600) return "세종대왕";
   if (points >= 300) return "율곡이이";
@@ -1321,10 +1330,8 @@ export default function App() {
             </div>
           </div>
         ) : view.page === "home" ? (
-          <table className="w-full border-separate" style={{ borderSpacing: "20px" }}>
-            <tbody>
-              <tr>
-                <td className="align-top p-0" style={{ width: "calc(100% - 280px)" }}>
+          <div className="flex flex-col lg:flex-row gap-5">
+            <div className="flex-1 min-w-0">
                   <div className="space-y-5">
                     <section className="bg-white rounded-lg border border-gray-200 p-4">
                       <h2 className="flex items-center gap-1.5 font-bold text-base mb-3">
@@ -1374,15 +1381,13 @@ export default function App() {
                       })}
                     </div>
                   </div>
-                </td>
-                <td className="align-top p-0" style={{ width: "280px" }}>
+            </div>
+            <div className="w-full lg:w-[280px] shrink-0">
                   <div className="space-y-4">
                     <Sidebar currentUser={currentUser} openAuth={openAuth} profiles={profiles} />
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            </div>
+          </div>
         ) : view.page === "hot" ? (
           <div>
             <h2 className="font-bold text-lg flex items-center gap-2 mb-3">
@@ -1736,7 +1741,7 @@ export default function App() {
 
       <footer className="bg-gray-900 text-gray-400 text-xs mt-8">
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
-          <p className="text-white font-bold mb-2">무사어판</p>
+          <p className="text-white font-bold mb-2">코리안에셋</p>
           <p className="flex justify-center gap-3 mb-2">
             <button onClick={() => setLegalModal("about")} className="hover:text-white">회사소개</button>
             <button onClick={() => setLegalModal("terms")} className="hover:text-white">이용약관</button>
@@ -1759,7 +1764,7 @@ export default function App() {
 
             {legalModal === "about" && (
               <div className="text-sm text-gray-600 leading-relaxed space-y-3">
-                <p>무사어판은 주식, 부동산, 보험, 금융 정보를 함께 나누는 커뮤니티입니다.</p>
+                <p>코리안에셋은 주식, 부동산, 보험, 금융 정보를 함께 나누는 커뮤니티입니다.</p>
                 <p>회원분들이 자유롭게 정보를 공유하고 소통할 수 있는 공간을 만드는 것을 목표로 운영하고 있습니다.</p>
               </div>
             )}
@@ -1768,7 +1773,7 @@ export default function App() {
               <div className="text-sm text-gray-600 leading-relaxed space-y-4">
                 <div>
                   <p className="font-bold text-gray-800 mb-1">제1조 (목적)</p>
-                  <p>이 약관은 무사어판(이하 "사이트")이 제공하는 서비스의 이용 조건 및 절차, 회원과 사이트의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
+                  <p>이 약관은 코리안에셋(이하 "사이트")이 제공하는 서비스의 이용 조건 및 절차, 회원과 사이트의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">제2조 (게시물의 책임)</p>
