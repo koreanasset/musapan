@@ -16,7 +16,13 @@ const CATEGORIES = [
 const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point");
 
 function buildPath(view) {
-  if (view.page === "detail" && view.postId) return `/post/${view.postId}`;
+  if (view.page === "detail" && view.postId) {
+    if (view.category) {
+      const base = view.subcategory ? `/${view.category}/${encodeURIComponent(view.subcategory)}` : `/${view.category}`;
+      return `${base}/${view.postId}`;
+    }
+    return `/post/${view.postId}`;
+  }
   if (view.page === "hot") return "/hot";
   if (view.page === "point") return "/point";
   if (view.page === "category" && view.category) {
@@ -38,6 +44,13 @@ function parseViewFromPath(pathname) {
   if (parts[0] === "point") return { page: "point", category: "point", subcategory: null, postId: null };
   const cat = BOARD_CATEGORIES.find(c => c.id === parts[0]);
   if (cat) {
+    if (parts.length === 1) return { page: "category", category: cat.id, subcategory: null, postId: null };
+    const last = parts[parts.length - 1];
+    const maybeId = Number(last);
+    if (!Number.isNaN(maybeId)) {
+      const subcategory = parts.length >= 3 ? parts[1] : null;
+      return { page: "detail", category: cat.id, subcategory, postId: maybeId };
+    }
     return { page: "category", category: cat.id, subcategory: parts[1] || null, postId: null };
   }
   return home;
@@ -556,8 +569,9 @@ export default function App() {
   }
 
   async function openPost(id) {
-    setView({ ...view, page: "detail", postId: id });
-    await supabase.from("posts").update({ views: (posts.find(p => p.id === id)?.views || 0) + 1 }).eq("id", id);
+    const target = posts.find(p => p.id === id);
+    setView({ page: "detail", category: target?.category || null, subcategory: target?.subcategory || null, postId: id });
+    await supabase.from("posts").update({ views: (target?.views || 0) + 1 }).eq("id", id);
     setPosts(posts.map(p => p.id === id ? { ...p, views: p.views + 1 } : p));
   }
 
@@ -760,7 +774,7 @@ export default function App() {
       setEditingPostId(null);
       setNewPost({ title: "", content: "", category: "community", subcategory: null });
       setShowWrite(false);
-      setView({ page: "detail", category: null, subcategory: null, postId: mapped.id });
+      setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
       return;
     }
 
@@ -779,7 +793,7 @@ export default function App() {
     await addPointsTo(currentUser, 5);
     setNewPost({ title: "", content: "", category: "community", subcategory: null });
     setShowWrite(false);
-    setView({ page: "detail", category: null, subcategory: null, postId: mapped.id });
+    setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
   }
 
   async function submitComment() {
