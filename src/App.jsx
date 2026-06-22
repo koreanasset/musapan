@@ -1735,6 +1735,57 @@ export default function App() {
                     <button onClick={() => requireAuth(submitComment)} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">등록</button>
                   </div>
                 </div>
+
+                {(() => {
+                  const boardList = postsByCategory(currentPost.category, currentPost.subcategory);
+                  const idx = boardList.findIndex(p => p.id === currentPost.id);
+                  const prevPost = idx >= 0 ? boardList[idx + 1] : null;
+                  const nextPost = idx >= 0 ? boardList[idx - 1] : null;
+                  return (
+                    <>
+                      <div className="bg-white rounded-lg border border-gray-200 mt-3 divide-y divide-gray-100">
+                        {nextPost && (
+                          <button onClick={() => openPost(nextPost.id)} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 text-left">
+                            <span className="text-xs text-gray-400 shrink-0">다음글</span>
+                            <span className="flex-1 truncate">{nextPost.title}</span>
+                          </button>
+                        )}
+                        {prevPost && (
+                          <button onClick={() => openPost(prevPost.id)} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 text-left">
+                            <span className="text-xs text-gray-400 shrink-0">이전글</span>
+                            <span className="flex-1 truncate">{prevPost.title}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded-lg border border-gray-200 mt-3">
+                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                          <h3 className="text-sm font-bold">
+                            {CATEGORIES.find(c => c.id === currentPost.category)?.name}
+                            {currentPost.subcategory && <span className="text-gray-400"> · {currentPost.subcategory}</span>} 게시글
+                          </h3>
+                          <button onClick={() => setView({ page: "category", category: currentPost.category, subcategory: currentPost.subcategory || null, postId: null })} className="text-xs text-gray-400 hover:text-indigo-600">
+                            전체보기
+                          </button>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {boardList.slice(0, 10).map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => openPost(p.id)}
+                              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 text-left ${p.id === currentPost.id ? "bg-indigo-50/50" : ""}`}
+                            >
+                              <span className={`flex-1 truncate ${p.id === currentPost.id ? "font-bold text-indigo-600" : ""}`}>
+                                {p.title} {p.comments.length > 0 && <span className="text-indigo-500 text-xs">[{p.comments.length}]</span>}
+                              </span>
+                              <span className="text-xs text-gray-400 shrink-0">{p.date}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             )}
           </div>
