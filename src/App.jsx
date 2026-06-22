@@ -741,7 +741,9 @@ export default function App() {
 
   async function addNotificationFor(targetUserId, { type, text, link }) {
     if (!targetUserId) return;
-    await supabase.from("notifications").insert({ user_id: targetUserId, type, text, link: link || null });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { data, error } = await supabase.from("notifications").insert({ user_id: targetUserId, type, text, link: link || null }).select();
+    console.log("[notif-debug] addNotificationFor", { targetUserId, type, hasSession: !!sessionData?.session, sessionUserId: sessionData?.session?.user?.id, data, error });
     if (currentUser && targetUserId === currentUser.id) loadNotifications(currentUser.id);
   }
 
