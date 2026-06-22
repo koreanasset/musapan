@@ -209,9 +209,9 @@ function NicknameMenu({ nickname, currentUser, blockedList, onToggleBlock, onMes
 function NicknameButton({ nickname, currentUser, onClick, className }) {
   const isBlocked = currentUser && (currentUser.blocked || []).includes(nickname);
   return (
-    <button onClick={onClick} className={`${className} inline-flex items-center gap-1`}>
-      {nickname}
-      {isBlocked && <Ban size={12} className="text-red-400" />}
+    <button onClick={onClick} className={`${className} inline-flex items-center gap-1 whitespace-nowrap shrink-0 max-w-[40vw] sm:max-w-none`}>
+      <span className="truncate">{nickname}</span>
+      {isBlocked && <Ban size={12} className="text-red-400 shrink-0" />}
     </button>
   );
 }
@@ -296,6 +296,7 @@ function mapPost(row) {
     authorId: row.author_id,
     author: row.profiles?.nickname || "알수없음",
     date: formatDate(row.created_at),
+    createdAt: row.created_at,
     views: row.views,
     likes: row.likes,
     dislikes: row.dislikes,
@@ -457,6 +458,12 @@ export default function App() {
   }, [loadProfiles, loadPosts]);
 
   useEffect(() => {
+    if (view.page === "home" || view.page === "category" || view.page === "hot" || view.page === "point") {
+      loadPosts();
+    }
+  }, [view.page, view.category, view.subcategory, loadPosts]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session) loadProfileFor(data.session.user.id);
@@ -553,11 +560,12 @@ export default function App() {
   }
 
   function realtimeHotPosts() {
+    const since = Date.now() - 24 * 60 * 60 * 1000;
     return [...posts]
       .filter(p => !isBlockedByMe(p.author))
       .filter(p => canListPost(p))
-      .filter(p => p.likes >= 5)
-      .sort((a, b) => b.likes - a.likes)
+      .filter(p => p.createdAt && new Date(p.createdAt).getTime() >= since)
+      .sort((a, b) => (b.likes + b.comments.length * 2) - (a.likes + a.comments.length * 2))
       .slice(0, 15);
   }
 
@@ -578,10 +586,17 @@ export default function App() {
   }
 
   async function openPost(id) {
-    const target = posts.find(p => p.id === id);
+    let target = posts.find(p => p.id === id);
+    if (!target) {
+      const { data } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle();
+      if (data) {
+        target = mapPost(data);
+        setPosts(prev => prev.some(p => p.id === id) ? prev : [target, ...prev]);
+      }
+    }
     setView({ page: "detail", category: target?.category || null, subcategory: target?.subcategory || null, postId: id });
     await supabase.from("posts").update({ views: (target?.views || 0) + 1 }).eq("id", id);
-    setPosts(posts.map(p => p.id === id ? { ...p, views: p.views + 1 } : p));
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, views: p.views + 1 } : p));
   }
 
   function openWrite() {
@@ -1402,7 +1417,7 @@ export default function App() {
               {(() => {
                 const list = hotTab === "today" ? realtimeHotPosts() : hotTab === "weekly" ? weeklyHotPosts() : mostCommentedPosts();
                 if (list.length === 0) {
-                  return <p className="text-center text-gray-300 py-10 text-sm">{hotTab === "today" ? "추천 5개 이상 받은 게시물이 아직 없습니다." : "게시물이 없습니다."}</p>;
+                  return <p className="text-center text-gray-300 py-10 text-sm">{hotTab === "today" ? "오늘 작성된 게시물이 아직 없습니다." : "게시물이 없습니다."}</p>;
                 }
                 return list.map((p, i) => {
                   const cat = CATEGORIES.find(c => c.id === p.category);
@@ -1414,7 +1429,7 @@ export default function App() {
                         <div className="flex-1 min-w-0">
                           <span className="font-medium truncate">{p.title}</span>
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
-                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
                             <Avatar nickname={p.author} size={18} avatarUrl={findUser(p.author)?.avatar_url} />
                             <span>{rankEmoji(findUser(p.author))}</span>
                             <NicknameButton nickname={p.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(p.author, e)} className="hover:text-indigo-600" />
@@ -1507,7 +1522,7 @@ export default function App() {
                           {p.subcategory && <span className="text-[11px] text-gray-400 ml-1.5 bg-gray-100 px-1.5 py-0.5 rounded">{p.subcategory}</span>}
                           {!canViewDetail(p) && <span className="text-[11px] text-gray-400 ml-1">🔒</span>}
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
-                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
                             <Avatar nickname={p.author} size={18} avatarUrl={findUser(p.author)?.avatar_url} />
                             <span>{rankEmoji(findUser(p.author))}</span>
                             <NicknameButton nickname={p.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(p.author, e)} className="hover:text-indigo-600" />
@@ -1559,7 +1574,7 @@ export default function App() {
                   </span>
                   {currentPost.subcategory && <span className="text-xs text-gray-400 ml-2">› {currentPost.subcategory}</span>}
                   <h1 className="text-xl font-bold mt-2 mb-3">{currentPost.title}</h1>
-                  <div className="flex items-center gap-3 text-sm text-gray-400 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3 text-sm text-gray-400 pb-3 border-b border-gray-100 flex-wrap">
                     <Avatar nickname={currentPost.author} size={28} avatarUrl={findUser(currentPost.author)?.avatar_url} />
                     <span>{rankEmoji(findUser(currentPost.author))}</span>
                     <NicknameButton nickname={currentPost.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(currentPost.author, e)} className="font-bold text-base text-gray-700 hover:text-indigo-600" />
@@ -1638,7 +1653,7 @@ export default function App() {
                               <Avatar nickname={c.author} size={24} avatarUrl={findUser(c.author)?.avatar_url} />
                               <span className="mt-0.5">{rankEmoji(findUser(c.author))}</span>
                               <div className="flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <NicknameButton nickname={c.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(c.author, e)} className="font-bold text-sm text-gray-700 hover:text-indigo-600" />
                                   <span className="text-[11px] text-amber-600 font-bold">👍 {c.likes}</span>
                                 </div>
@@ -1660,7 +1675,7 @@ export default function App() {
                           <Avatar nickname={c.author} size={26} avatarUrl={findUser(c.author)?.avatar_url} />
                           <span className="mt-0.5">{rankEmoji(findUser(c.author))}</span>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <NicknameButton nickname={c.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(c.author, e)} className="font-bold text-sm text-gray-700 hover:text-indigo-600" />
                               <span className="text-[11px] text-gray-300">IP: {maskIp(c.ip, currentUser?.role === "master")}</span>
                             </div>
