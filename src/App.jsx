@@ -15,6 +15,34 @@ const CATEGORIES = [
 
 const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point");
 
+function buildPath(view) {
+  if (view.page === "detail" && view.postId) return `/post/${view.postId}`;
+  if (view.page === "hot") return "/hot";
+  if (view.page === "point") return "/point";
+  if (view.page === "category" && view.category) {
+    if (view.subcategory) return `/${view.category}/${encodeURIComponent(view.subcategory)}`;
+    return `/${view.category}`;
+  }
+  return "/";
+}
+
+function parseViewFromPath(pathname) {
+  const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  const home = { page: "home", category: null, subcategory: null, postId: null };
+  if (parts.length === 0) return home;
+  if (parts[0] === "post" && parts[1]) {
+    const postId = Number(parts[1]);
+    if (!Number.isNaN(postId)) return { page: "detail", category: null, subcategory: null, postId };
+  }
+  if (parts[0] === "hot") return { page: "hot", category: "hot", subcategory: null, postId: null };
+  if (parts[0] === "point") return { page: "point", category: "point", subcategory: null, postId: null };
+  const cat = BOARD_CATEGORIES.find(c => c.id === parts[0]);
+  if (cat) {
+    return { page: "category", category: cat.id, subcategory: parts[1] || null, postId: null };
+  }
+  return home;
+}
+
 const BOARD_PERMISSIONS = {
   "보험대란알림": { write: "master", list: "member", detail: "member" },
   "Hey보험딜러 비교견적내줘": { write: "member", list: "guest", detail: "owner" },
@@ -82,6 +110,14 @@ function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const date = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${date} ${time}`;
 }
 
 async function getClientIp() {
@@ -253,7 +289,7 @@ const POST_SELECT = "*, profiles!posts_author_id_fkey(nickname, role, points), c
 export default function App() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
-  const [view, setView] = useState({ page: "home", category: null, subcategory: null, postId: null });
+  const [view, setView] = useState(() => parseViewFromPath(window.location.pathname));
   const [profiles, setProfiles] = useState([]);
   const [session, setSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -306,23 +342,28 @@ export default function App() {
   }, []);
 
   const isPoppingRef = useRef(false);
+  const didMountRef = useRef(false);
 
   useEffect(() => {
-    history.replaceState(view, "");
+    history.replaceState(view, "", buildPath(view));
   }, []);
 
   useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
     if (isPoppingRef.current) {
       isPoppingRef.current = false;
       return;
     }
-    history.pushState(view, "");
+    history.pushState(view, "", buildPath(view));
   }, [view]);
 
   useEffect(() => {
     function onPopState(e) {
       isPoppingRef.current = true;
-      setView(e.state || { page: "home", category: null, subcategory: null, postId: null });
+      setView(e.state || parseViewFromPath(window.location.pathname));
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -355,7 +396,7 @@ export default function App() {
         to: m.receiver?.nickname || "알수없음",
         subject: m.subject,
         content: m.content,
-        date: formatDate(m.created_at),
+        date: formatDateTime(m.created_at),
         read: m.read,
       })));
     }
@@ -427,6 +468,22 @@ export default function App() {
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        loadNotifications(currentUser.id);
+        loadMessages(currentUser.id);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [currentUser?.id, loadNotifications, loadMessages]);
 
   const currentPost = posts.find(p => p.id === view.postId);
   const isBlockedByMe = (nickname) => currentUser && (currentUser.blocked || []).includes(nickname);
@@ -1005,11 +1062,11 @@ export default function App() {
       setComposeError("받는 사람, 제목, 내용을 모두 입력해주세요.");
       return;
     }
-    if (to.trim() === currentUser.nickname) {
+    if (to.trim().toLowerCase() === currentUser.nickname.toLowerCase()) {
       setComposeError("본인에게는 쪽지를 보낼 수 없습니다.");
       return;
     }
-    const toProfile = findUser(to.trim());
+    const toProfile = profiles.find(u => u.nickname.toLowerCase() === to.trim().toLowerCase());
     if (!toProfile) {
       setComposeError("존재하지 않는 닉네임입니다.");
       return;
