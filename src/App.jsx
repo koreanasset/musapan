@@ -131,13 +131,13 @@ function maskIp(ip, isAdmin) {
 function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function formatDateTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  const date = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  const date = formatDate(iso);
   const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   return `${date} ${time}`;
 }
@@ -278,6 +278,8 @@ function mapComment(row) {
     authorId: row.author_id,
     author: row.profiles?.nickname || "알수없음",
     text: row.text,
+    date: formatDateTime(row.created_at),
+    createdAt: row.created_at,
     likes: row.likes,
     dislikes: row.dislikes,
     likedBy: row.liked_by || [],
@@ -295,7 +297,7 @@ function mapPost(row) {
     content: row.content,
     authorId: row.author_id,
     author: row.profiles?.nickname || "알수없음",
-    date: formatDate(row.created_at),
+    date: formatDateTime(row.created_at),
     createdAt: row.created_at,
     views: row.views,
     likes: row.likes,
@@ -570,16 +572,20 @@ export default function App() {
     return [...posts]
       .filter(p => !isBlockedByMe(p.author))
       .filter(p => canListPost(p))
+      .filter(p => p.likes >= 5)
       .filter(p => p.createdAt && new Date(p.createdAt).getTime() >= since)
-      .sort((a, b) => (b.likes + b.comments.length * 2) - (a.likes + a.comments.length * 2))
+      .sort((a, b) => b.likes - a.likes)
       .slice(0, 15);
   }
 
   function weeklyHotPosts() {
+    const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return [...posts]
       .filter(p => !isBlockedByMe(p.author))
       .filter(p => canListPost(p))
-      .sort((a, b) => (b.likes + b.comments.length * 2) - (a.likes + a.comments.length * 2))
+      .filter(p => p.likes >= 5)
+      .filter(p => p.createdAt && new Date(p.createdAt).getTime() >= since)
+      .sort((a, b) => b.likes - a.likes)
       .slice(0, 15);
   }
 
@@ -1462,7 +1468,7 @@ export default function App() {
               {(() => {
                 const list = hotTab === "today" ? realtimeHotPosts() : hotTab === "weekly" ? weeklyHotPosts() : mostCommentedPosts();
                 if (list.length === 0) {
-                  return <p className="text-center text-gray-300 py-10 text-sm">{hotTab === "today" ? "오늘 작성된 게시물이 아직 없습니다." : "게시물이 없습니다."}</p>;
+                  return <p className="text-center text-gray-300 py-10 text-sm">{hotTab === "today" || hotTab === "weekly" ? "추천 5개 이상 받은 게시물이 아직 없습니다." : "게시물이 없습니다."}</p>;
                 }
                 return list.map((p, i) => {
                   const cat = CATEGORIES.find(c => c.id === p.category);
@@ -1723,6 +1729,7 @@ export default function App() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <NicknameButton nickname={c.author} currentUser={currentUser} onClick={(e) => openNicknameMenu(c.author, e)} className="font-bold text-sm text-gray-700 hover:text-indigo-600" />
                               <span className="text-[11px] text-gray-300">IP: {maskIp(c.ip, currentUser?.role === "master")}</span>
+                              <span className="text-[11px] text-gray-300">{c.date}</span>
                             </div>
                             {editingCommentId === c.id ? (
                               <div className="flex gap-1.5 mt-1">
