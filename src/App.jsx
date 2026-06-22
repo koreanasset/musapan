@@ -356,6 +356,12 @@ export default function App() {
   const [profileView, setProfileView] = useState(null);
   const [hotTab, setHotTab] = useState("today");
   const [legalModal, setLegalModal] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminMembers, setAdminMembers] = useState([]);
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminDetailId, setAdminDetailId] = useState(null);
+  const [adminPointsInput, setAdminPointsInput] = useState("");
+  const [adminError, setAdminError] = useState("");
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -779,6 +785,40 @@ export default function App() {
       const text = isPromotion ? `등급이 '${after}'로 승급했습니다! 🎉` : `등급이 '${after}'로 강등되었습니다.`;
       addNotificationFor(profile.id, { type: "point", text, link: null });
     }
+  }
+
+  async function loadAdminMembers() {
+    setAdminError("");
+    const { data, error } = await supabase.rpc("admin_list_profiles");
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setAdminMembers(data || []);
+  }
+
+  function openAdmin() {
+    setAdminSearch("");
+    setAdminDetailId(null);
+    setShowAdmin(true);
+    loadAdminMembers();
+  }
+
+  async function adminChangeRole(member, role) {
+    const { error } = await supabase.from("profiles").update({ role }).eq("id", member.id);
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setAdminMembers(prev => prev.map(m => m.id === member.id ? { ...m, role } : m));
+    setProfiles(prev => prev.map(u => u.id === member.id ? { ...u, role } : u));
+  }
+
+  async function adminAdjustPoints(member, delta) {
+    if (!delta) return;
+    await addPointsTo(member, delta);
+    setAdminMembers(prev => prev.map(m => m.id === member.id ? { ...m, points: Math.max(0, (m.points || 0) + delta) } : m));
+    setAdminPointsInput("");
   }
 
   async function submitPost() {
@@ -1242,6 +1282,11 @@ export default function App() {
               )}
               <span>알림</span>
             </button>
+            {currentUser?.role === "master" && (
+              <button onClick={openAdmin} className="flex flex-col items-center gap-0.5 hover:text-indigo-600">
+                <Shield size={18} /><span>관리자</span>
+              </button>
+            )}
           </div>
         </div>
         <nav className="border-t border-gray-100 bg-gray-50 relative z-30 overflow-visible">
@@ -2460,6 +2505,115 @@ export default function App() {
             <button onClick={submitPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
               {editingPostId ? "수정하기" : "등록하기 (+5P)"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {showAdmin && currentUser?.role === "master" && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setShowAdmin(false)}>
+          <div className="bg-white rounded-xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+              <h3 className="font-bold text-lg flex items-center gap-2"><Shield size={18} />관리자 페이지</h3>
+              <button onClick={() => setShowAdmin(false)}><X size={18} className="text-gray-400" /></button>
+            </div>
+
+            <div className="flex flex-1 min-h-0">
+              <div className="w-3/5 border-r border-gray-100 flex flex-col min-h-0">
+                <div className="px-4 py-3 border-b border-gray-100 shrink-0">
+                  <input
+                    value={adminSearch}
+                    onChange={e => setAdminSearch(e.target.value)}
+                    placeholder="닉네임 또는 이메일 검색"
+                    className="w-full px-3 py-2 text-sm bg-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1.5">전체 회원 {adminMembers.length}명</p>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {adminError && <p className="text-xs text-red-500 px-4 py-3">{adminError}</p>}
+                  {adminMembers
+                    .filter(m => {
+                      const q = adminSearch.trim().toLowerCase();
+                      if (!q) return true;
+                      return m.nickname.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
+                    })
+                    .map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setAdminDetailId(m.id); setAdminPointsInput(""); }}
+                        className={`w-full text-left px-4 py-2.5 border-b border-gray-50 hover:bg-gray-50 flex items-center gap-2.5 ${adminDetailId === m.id ? "bg-indigo-50" : ""}`}
+                      >
+                        <Avatar nickname={m.nickname} size={28} avatarUrl={m.avatar_url} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate flex items-center gap-1">
+                            {m.nickname}
+                            {m.role === "master" && <span className="text-[10px] text-indigo-500">👑</span>}
+                            {m.role === "staff" && <span className="text-[10px] text-indigo-500">🪖</span>}
+                          </p>
+                          <p className="text-[11px] text-gray-400 truncate">{m.email}</p>
+                        </div>
+                        <span className="text-xs text-gray-400 shrink-0">{m.points}P</span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              <div className="w-2/5 flex flex-col min-h-0 overflow-y-auto">
+                {(() => {
+                  const member = adminMembers.find(m => m.id === adminDetailId);
+                  if (!member) {
+                    return <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">회원을 선택해주세요</div>;
+                  }
+                  return (
+                    <div className="p-5 space-y-5">
+                      <div className="flex items-center gap-3">
+                        <Avatar nickname={member.nickname} size={48} avatarUrl={member.avatar_url} />
+                        <div>
+                          <p className="font-bold">{member.nickname}</p>
+                          <p className="text-xs text-gray-400">{member.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2 space-y-1">
+                        <p>가입일: {formatDate(member.created_at)}</p>
+                        <p>차단한 회원 수: {(member.blocked || []).length}명</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold mb-2">등급</p>
+                        <select
+                          value={member.role}
+                          onChange={e => adminChangeRole(member, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm"
+                        >
+                          <option value="user">일반회원</option>
+                          <option value="staff">스탭</option>
+                          <option value="master">마스터</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold mb-2">포인트 ({member.points}P)</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={adminPointsInput}
+                            onChange={e => setAdminPointsInput(e.target.value)}
+                            placeholder="가감할 포인트 (예: 50, -20)"
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm"
+                          />
+                          <button
+                            onClick={() => adminAdjustPoints(member, Number(adminPointsInput))}
+                            className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 whitespace-nowrap"
+                          >
+                            적용
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         </div>
       )}

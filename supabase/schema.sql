@@ -185,3 +185,18 @@ create policy "avatars_delete_own" on storage.objects for delete using (bucket_i
 
 -- 알림을 실시간으로 받기 위해 Realtime publication에 추가
 alter publication supabase_realtime add table notifications;
+
+-- =========================================
+-- 관리자 페이지: 마스터만 회원 이메일 목록 조회 가능 (profiles에는 email 컬럼을 두지 않고 auth.users에서 조인)
+-- =========================================
+create or replace function public.admin_list_profiles()
+returns table(id uuid, nickname text, email text, points int, role text, blocked text[], avatar_url text, created_at timestamptz)
+as $$
+  select p.id, p.nickname, u.email, p.points, p.role, p.blocked, p.avatar_url, p.created_at
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where public.is_master()
+  order by p.created_at desc;
+$$ language sql security definer stable set search_path = public, auth;
+
+grant execute on function public.admin_list_profiles() to authenticated;
