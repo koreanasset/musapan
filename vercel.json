@@ -1,6 +1,15 @@
 {
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
+    { "source": "/rss.xml", "destination": "/api/rss.xml" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/hot", "destination": "/index.html" },
+    { "source": "/point", "destination": "/index.html" },
+    { "source": "/write", "destination": "/index.html" },
+    { "source": "/post/:id(\\d+)", "destination": "/index.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)", "destination": "/index.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub", "destination": "/index.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)", "destination": "/index.html" }
   ]
 }

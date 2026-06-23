@@ -1864,6 +1864,14 @@ export default function App() {
               </>
             )}
           </div>
+        ) : view.page === "detail" ? (
+          postsLoading ? null : (
+            <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
+              <Shield size={32} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm mb-4">게시글을 찾을 수 없습니다. 삭제되었거나 잘못된 주소입니다.</p>
+              <button onClick={() => setView({ page: "home", category: null, subcategory: null, postId: null })} className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">홈으로</button>
+            </div>
+          )
         ) : view.page === "write" ? (
           !currentUser ? (
             <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
