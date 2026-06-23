@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
+import QuillEditor from "./QuillEditor";
+import DOMPurify from "dompurify";
 
 const CATEGORIES = [
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"] },
@@ -828,7 +830,8 @@ export default function App() {
   }
 
   async function submitPost() {
-    if (!newPost.title.trim() || !newPost.content.trim() || !currentUser) return;
+    const isContentEmpty = !newPost.content || !newPost.content.replace(/<(.|\n)*?>/g, "").trim();
+    if (!newPost.title.trim() || isContentEmpty || !currentUser) return;
     if (newPost.subcategory && !canWriteToSubcategory(newPost.subcategory)) return;
 
     if (editingPostId) {
@@ -1634,7 +1637,10 @@ export default function App() {
                     <span>{currentPost.date}</span>
                     <span className="flex items-center gap-1"><Eye size={12} />{currentPost.views}</span>
                   </div>
-                  <p className="py-4 whitespace-pre-line text-gray-800 leading-relaxed text-base">{currentPost.content}</p>
+                  <div
+                    className="py-4 text-gray-800 leading-relaxed text-base ql-editor p-0!"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
+                  />
                   {(() => {
                     const isOwnPost = currentUser && currentPost.author === currentUser.nickname;
                     const alreadyLiked = currentUser && currentPost.likedBy.includes(currentUser.id);
@@ -2445,7 +2451,7 @@ export default function App() {
 
       {showWrite && currentUser && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => { setShowWrite(false); setEditingPostId(null); }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">{editingPostId ? "글 수정" : "글쓰기"}</h3>
               <button onClick={() => { setShowWrite(false); setEditingPostId(null); }}><X size={18} className="text-gray-400" /></button>
@@ -2502,13 +2508,14 @@ export default function App() {
               placeholder="제목"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
             />
-            <textarea
-              value={newPost.content}
-              onChange={e => setNewPost({ ...newPost, content: e.target.value })}
-              placeholder="내용을 입력하세요"
-              rows={6}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 resize-none"
-            />
+            <div className="mb-3">
+              <QuillEditor
+                key={showWrite ? `write-${editingPostId || "new"}` : "closed"}
+                value={newPost.content}
+                onChange={html => setNewPost(prev => ({ ...prev, content: html }))}
+                placeholder="내용을 입력하세요"
+              />
+            </div>
             <button onClick={submitPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
               {editingPostId ? "수정하기" : "등록하기 (+5P)"}
             </button>
