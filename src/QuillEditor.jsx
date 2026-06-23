@@ -15,7 +15,7 @@ const TOOLBAR_OPTIONS = [
   ["clean"],
 ];
 
-export default function QuillEditor({ value, onChange, placeholder }) {
+export default function QuillEditor({ value, onChange, placeholder, minHeight = 200 }) {
   const containerRef = useRef(null);
   const quillRef = useRef(null);
   const initializedRef = useRef(false);
@@ -31,6 +31,8 @@ export default function QuillEditor({ value, onChange, placeholder }) {
 
     const editorEl = document.createElement("div");
     containerRef.current.appendChild(editorEl);
+
+    editorEl.style.minHeight = `${minHeight}px`;
 
     const quill = new Quill(editorEl, {
       theme: "snow",

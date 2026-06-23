@@ -36,6 +36,7 @@ function buildPath(view) {
   }
   if (view.page === "hot") return "/hot";
   if (view.page === "point") return "/point";
+  if (view.page === "write") return "/write";
   if (view.page === "category" && view.category) {
     if (view.subcategory) return `/${view.category}/${slugify(view.subcategory)}`;
     return `/${view.category}`;
@@ -53,6 +54,7 @@ function parseViewFromPath(pathname) {
   }
   if (parts[0] === "hot") return { page: "hot", category: "hot", subcategory: null, postId: null };
   if (parts[0] === "point") return { page: "point", category: "point", subcategory: null, postId: null };
+  if (parts[0] === "write") return { page: "write", category: null, subcategory: null, postId: null };
   const cat = BOARD_CATEGORIES.find(c => c.id === parts[0]);
   if (cat) {
     if (parts.length === 1) return { page: "category", category: cat.id, subcategory: null, postId: null };
@@ -327,7 +329,6 @@ export default function App() {
   const [authStep, setAuthStep] = useState("form");
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetNewPassword2, setResetNewPassword2] = useState("");
-  const [showWrite, setShowWrite] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null });
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -619,13 +620,18 @@ export default function App() {
     if (prefillSub && !canWriteToSubcategory(prefillSub)) prefillSub = null;
     setEditingPostId(null);
     setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub });
-    setShowWrite(true);
+    setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
   function openEditPost(post) {
     setEditingPostId(post.id);
     setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory });
-    setShowWrite(true);
+    setView({ page: "write", category: null, subcategory: null, postId: null });
+  }
+
+  function cancelWrite() {
+    setView({ page: "category", category: newPost.category, subcategory: newPost.subcategory || null, postId: null });
+    setEditingPostId(null);
   }
 
   function canModify(authorNickname) {
@@ -846,7 +852,6 @@ export default function App() {
       setPosts(prev => prev.map(p => p.id === editingPostId ? mapped : p));
       setEditingPostId(null);
       setNewPost({ title: "", content: "", category: "community", subcategory: null });
-      setShowWrite(false);
       setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
       return;
     }
@@ -865,7 +870,6 @@ export default function App() {
     setPosts(prev => [mapped, ...prev]);
     await addPointsTo(currentUser, 5);
     setNewPost({ title: "", content: "", category: "community", subcategory: null });
-    setShowWrite(false);
     setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
   }
 
@@ -1860,6 +1864,92 @@ export default function App() {
               </>
             )}
           </div>
+        ) : view.page === "write" ? (
+          !currentUser ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
+              <Shield size={32} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm mb-4">로그인이 필요한 페이지입니다.</p>
+              <button onClick={() => openAuth("login")} className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">로그인하기</button>
+            </div>
+          ) : (
+            <div>
+              <button onClick={cancelWrite} className="text-sm text-gray-500 hover:text-gray-700 mb-3">
+                ← 취소하고 목록으로
+              </button>
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h2 className="font-bold text-lg mb-4">{editingPostId ? "글 수정" : "글쓰기"}</h2>
+                <div className="flex gap-1.5 mb-3 flex-wrap">
+                  {BOARD_CATEGORIES.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => setNewPost({ ...newPost, category: c.id, subcategory: null })}
+                      className={`text-xs px-2.5 py-1 rounded-full ${newPost.category === c.id ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const cat = BOARD_CATEGORIES.find(c => c.id === newPost.category);
+                  if (!cat || !cat.sub || cat.sub.length === 0) return null;
+                  return (
+                    <div className="flex gap-1.5 mb-4 flex-wrap">
+                      <button
+                        onClick={() => setNewPost({ ...newPost, subcategory: null })}
+                        className={`text-[11px] px-2 py-1 rounded-full border ${!newPost.subcategory ? "border-indigo-500 text-indigo-600 bg-indigo-50" : "border-gray-200 text-gray-400"}`}
+                      >
+                        세부선택안함
+                      </button>
+                      {cat.sub.map(s => {
+                        const locked = !canWriteToSubcategory(s);
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => { if (!locked) setNewPost({ ...newPost, subcategory: s }); }}
+                            disabled={locked}
+                            title={locked ? "마스터만 작성할 수 있는 게시판입니다" : undefined}
+                            className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${
+                              locked
+                                ? "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
+                                : newPost.subcategory === s
+                                ? "border-indigo-500 text-indigo-600 bg-indigo-50"
+                                : "border-gray-200 text-gray-400"
+                            }`}
+                          >
+                            {locked && <Shield size={10} />}
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                <input
+                  value={newPost.title}
+                  onChange={e => setNewPost({ ...newPost, title: e.target.value })}
+                  placeholder="제목"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 text-base"
+                />
+                <div className="mb-4">
+                  <QuillEditor
+                    key={`write-${editingPostId || "new"}`}
+                    value={newPost.content}
+                    onChange={html => setNewPost(prev => ({ ...prev, content: html }))}
+                    placeholder="내용을 입력하세요"
+                    minHeight={420}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={cancelWrite} className="flex-1 border border-gray-200 text-gray-500 py-2.5 rounded-lg font-medium hover:bg-gray-50">
+                    취소
+                  </button>
+                  <button onClick={submitPost} className="flex-1 bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700">
+                    {editingPostId ? "수정하기" : "등록하기 (+5P)"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         ) : null}
       </main>
 
@@ -2445,80 +2535,6 @@ export default function App() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {showWrite && currentUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => { setShowWrite(false); setEditingPostId(null); }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg">{editingPostId ? "글 수정" : "글쓰기"}</h3>
-              <button onClick={() => { setShowWrite(false); setEditingPostId(null); }}><X size={18} className="text-gray-400" /></button>
-            </div>
-            <div className="flex gap-1.5 mb-3 flex-wrap">
-              {BOARD_CATEGORIES.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setNewPost({ ...newPost, category: c.id, subcategory: null })}
-                  className={`text-xs px-2.5 py-1 rounded-full ${newPost.category === c.id ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500"}`}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-            {(() => {
-              const cat = BOARD_CATEGORIES.find(c => c.id === newPost.category);
-              if (!cat || !cat.sub || cat.sub.length === 0) return null;
-              return (
-                <div className="flex gap-1.5 mb-3 flex-wrap">
-                  <button
-                    onClick={() => setNewPost({ ...newPost, subcategory: null })}
-                    className={`text-[11px] px-2 py-1 rounded-full border ${!newPost.subcategory ? "border-indigo-500 text-indigo-600 bg-indigo-50" : "border-gray-200 text-gray-400"}`}
-                  >
-                    세부선택안함
-                  </button>
-                  {cat.sub.map(s => {
-                    const locked = !canWriteToSubcategory(s);
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => { if (!locked) setNewPost({ ...newPost, subcategory: s }); }}
-                        disabled={locked}
-                        title={locked ? "마스터만 작성할 수 있는 게시판입니다" : undefined}
-                        className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${
-                          locked
-                            ? "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
-                            : newPost.subcategory === s
-                            ? "border-indigo-500 text-indigo-600 bg-indigo-50"
-                            : "border-gray-200 text-gray-400"
-                        }`}
-                      >
-                        {locked && <Shield size={10} />}
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-            <input
-              value={newPost.title}
-              onChange={e => setNewPost({ ...newPost, title: e.target.value })}
-              placeholder="제목"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
-            />
-            <div className="mb-3">
-              <QuillEditor
-                key={showWrite ? `write-${editingPostId || "new"}` : "closed"}
-                value={newPost.content}
-                onChange={html => setNewPost(prev => ({ ...prev, content: html }))}
-                placeholder="내용을 입력하세요"
-              />
-            </div>
-            <button onClick={submitPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
-              {editingPostId ? "수정하기" : "등록하기 (+5P)"}
-            </button>
           </div>
         </div>
       )}
