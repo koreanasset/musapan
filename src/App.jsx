@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
-import QuillEditor from "./QuillEditor";
+import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
 
 const CATEGORIES = [
@@ -1642,7 +1642,7 @@ export default function App() {
                     <span className="flex items-center gap-1"><Eye size={12} />{currentPost.views}</span>
                   </div>
                   <div
-                    className="py-4 text-gray-800 leading-relaxed text-base ql-editor p-0!"
+                    className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
                   {(() => {
@@ -1931,7 +1931,7 @@ export default function App() {
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 text-base"
                 />
                 <div className="mb-4">
-                  <QuillEditor
+                  <TinyEditor
                     key={`write-${editingPostId || "new"}`}
                     value={newPost.content}
                     onChange={html => setNewPost(prev => ({ ...prev, content: html }))}

@@ -10,3 +10,15 @@ a,
 .cursor-pointer {
   cursor: pointer;
 }
+
+.post-content h1 { font-size: 1.6em; font-weight: 700; margin: 0.6em 0 0.4em; }
+.post-content h2 { font-size: 1.4em; font-weight: 700; margin: 0.6em 0 0.4em; }
+.post-content h3 { font-size: 1.2em; font-weight: 700; margin: 0.6em 0 0.4em; }
+.post-content p { margin: 0.6em 0; }
+.post-content ul, .post-content ol { margin: 0.6em 0; padding-left: 1.5em; }
+.post-content blockquote { border-left: 3px solid #e5e7eb; padding-left: 1em; color: #6b7280; margin: 0.6em 0; }
+.post-content table { border-collapse: collapse; margin: 0.6em 0; }
+.post-content table td, .post-content table th { border: 1px solid #e5e7eb; padding: 0.4em 0.6em; }
+.post-content img { max-width: 100%; border-radius: 0.5rem; }
+.post-content a { color: #4f46e5; text-decoration: underline; }
+.post-content pre { background: #f4f4f5; padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; }

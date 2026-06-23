@@ -13,9 +13,9 @@
     "@supabase/supabase-js": "^2.108.2",
     "dompurify": "^3.4.11",
     "lucide-react": "^1.21.0",
-    "quill": "^2.0.3",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "tinymce": "^8.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
