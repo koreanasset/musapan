@@ -306,6 +306,7 @@ function mapPost(row) {
     dislikes: row.dislikes,
     likedBy: row.liked_by || [],
     dislikedBy: row.disliked_by || [],
+    thumbnail: row.thumbnail_url || null,
     ip: row.ip,
     comments: (row.comments || []).map(mapComment).sort((a, b) => a.id - b.id),
   };
@@ -327,7 +328,7 @@ export default function App() {
   const [authStep, setAuthStep] = useState("form");
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetNewPassword2, setResetNewPassword2] = useState("");
-  const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null });
+  const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState("");
@@ -626,13 +627,13 @@ export default function App() {
     let prefillSub = view.category === validCategory ? (view.subcategory || null) : null;
     if (prefillSub && !canWriteToSubcategory(prefillSub)) prefillSub = null;
     setEditingPostId(null);
-    setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub });
+    setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub, thumbnail: null });
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
   function openEditPost(post) {
     setEditingPostId(post.id);
-    setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory });
+    setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory, thumbnail: post.thumbnail || null });
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
@@ -931,12 +932,13 @@ export default function App() {
         subcategory: newPost.subcategory || null,
         title: newPost.title,
         content: newPost.content,
+        thumbnail_url: newPost.thumbnail || null,
       }).eq("id", editingPostId).select(POST_SELECT).single();
       if (error || !data) return;
       const mapped = mapPost(data);
       setPosts(prev => prev.map(p => p.id === editingPostId ? mapped : p));
       setEditingPostId(null);
-      setNewPost({ title: "", content: "", category: "community", subcategory: null });
+      setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
       setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
       return;
     }
@@ -954,6 +956,7 @@ export default function App() {
       subcategory: newPost.subcategory || null,
       title: newPost.title,
       content: newPost.content,
+      thumbnail_url: newPost.thumbnail || null,
       author_id: currentUser.id,
       ip,
     }).select(POST_SELECT).single();
@@ -961,7 +964,7 @@ export default function App() {
     const mapped = mapPost(data);
     setPosts(prev => [mapped, ...prev]);
     await addPointsTo(currentUser, 5);
-    setNewPost({ title: "", content: "", category: "community", subcategory: null });
+    setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
     setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
   }
 
@@ -1111,6 +1114,28 @@ export default function App() {
     setProfileError("");
     setProfileSuccess("");
     setShowProfile(true);
+  }
+
+  async function handleThumbnailUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("5MB 이하의 이미지만 업로드할 수 있습니다.");
+      return;
+    }
+    const ext = file.name.split(".").pop();
+    const path = `${currentUser.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("post-images").upload(path, file);
+    if (uploadError) {
+      alert(uploadError.message);
+      return;
+    }
+    const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+    setNewPost(prev => ({ ...prev, thumbnail: data.publicUrl }));
   }
 
   async function handleAvatarUpload(e) {
@@ -2077,6 +2102,25 @@ export default function App() {
                   placeholder="제목"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 text-base"
                 />
+                <div className="mb-4">
+                  <p className="text-sm font-bold mb-2">썸네일 (검색결과/공유 시 미리보기 이미지)</p>
+                  <div className="flex items-center gap-3">
+                    {newPost.thumbnail && (
+                      <img src={newPost.thumbnail} alt="썸네일 미리보기" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                    )}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 inline-block w-fit">
+                        {newPost.thumbnail ? "썸네일 변경" : "썸네일 업로드"}
+                        <input type="file" accept="image/*" onChange={handleThumbnailUpload} className="hidden" />
+                      </label>
+                      {newPost.thumbnail && (
+                        <button onClick={() => setNewPost(prev => ({ ...prev, thumbnail: null }))} className="text-xs text-gray-400 hover:text-red-500 text-left">
+                          썸네일 제거
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="mb-4">
                   <TinyEditor
                     key={`write-${editingPostId || "new"}`}

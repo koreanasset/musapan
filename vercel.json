@@ -3,6 +3,21 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
     { "source": "/rss.xml", "destination": "/api/rss.xml" },
+    {
+      "source": "/post/:id(\\d+)",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/post-meta?id=:id&path=/post/:id"
+    },
+    {
+      "source": "/:category(stock|realestate|insurance|finance|politics|community)/:id(\\d+)",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/post-meta?id=:id&path=/:category/:id"
+    },
+    {
+      "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/post-meta?id=:id&path=/:category/:sub/:id"
+    },
     { "source": "/", "destination": "/index.html" },
     { "source": "/hot", "destination": "/index.html" },
     { "source": "/point", "destination": "/index.html" },
@@ -10,6 +25,7 @@
     { "source": "/post/:id(\\d+)", "destination": "/index.html" },
     { "source": "/:category(stock|realestate|insurance|finance|politics|community)", "destination": "/index.html" },
     { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub", "destination": "/index.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:id(\\d+)", "destination": "/index.html" },
     { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)", "destination": "/index.html" }
   ]
 }
