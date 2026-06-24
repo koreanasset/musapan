@@ -1414,12 +1414,12 @@ export default function App() {
                         {hotPosts.map((p, i) => {
                           const cat = CATEGORIES.find(c => c.id === p.category);
                           return (
-                            <button key={p.id} onClick={() => openPost(p.id)} className="w-full text-left py-2.5 flex items-center gap-3 hover:bg-gray-50 -mx-1 px-1 rounded">
-                              <span className={`font-bold w-4 text-center ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
-                              <span className="text-sm font-bold px-2 py-1 rounded" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
-                              <span className="text-xs text-gray-400">{p.date}</span>
-                              <span className="flex-1 font-medium truncate">{p.title} {p.comments.length > 0 && <span className="text-indigo-500">[{p.comments.length}]</span>}</span>
-                              <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0"><Eye size={11} />{p.views}</span>
+                            <button key={p.id} onClick={() => openPost(p.id)} className="w-full text-left py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 hover:bg-gray-50 -mx-1 px-1 rounded">
+                              <span className={`font-bold w-4 text-center shrink-0 ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
+                              <span className="text-sm font-bold px-2 py-1 rounded shrink-0" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
+                              <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">{p.date}</span>
+                              <span className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 sm:min-w-0 font-medium line-clamp-2 sm:line-clamp-none sm:truncate">{p.title} {p.comments.length > 0 && <span className="text-indigo-500">[{p.comments.length}]</span>}</span>
+                              <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0 ml-auto sm:ml-0"><Eye size={11} />{p.views}</span>
                               <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0"><ThumbsUp size={11} />{p.likes}</span>
                             </button>
                           );
