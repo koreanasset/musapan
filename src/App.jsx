@@ -1485,7 +1485,7 @@ export default function App() {
                         <span className={`font-bold w-5 text-center shrink-0 ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
                         <span className="text-xs font-bold px-2 py-1 rounded shrink-0" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
                         <div className="flex-1 min-w-0">
-                          <span className="font-medium truncate">{p.title}</span>
+                          <span className="font-medium break-words">{p.title}</span>
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
                             <Avatar nickname={p.author} size={18} avatarUrl={findUser(p.author)?.avatar_url} />
@@ -1576,7 +1576,7 @@ export default function App() {
                     <div key={p.id} className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3">
                       <button onClick={() => openPost(p.id)} className="flex-1 min-w-0 text-left flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <span className="font-medium truncate">{p.title}</span>
+                          <span className="font-medium break-words">{p.title}</span>
                           {p.subcategory && <span className="text-[11px] text-gray-400 ml-1.5 bg-gray-100 px-1.5 py-0.5 rounded">{p.subcategory}</span>}
                           {!canViewDetail(p) && <span className="text-[11px] text-gray-400 ml-1">🔒</span>}
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
