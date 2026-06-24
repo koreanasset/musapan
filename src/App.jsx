@@ -367,6 +367,9 @@ export default function App() {
   const [adminDetailId, setAdminDetailId] = useState(null);
   const [adminPointsInput, setAdminPointsInput] = useState("");
   const [adminError, setAdminError] = useState("");
+  const [selectedPostIds, setSelectedPostIds] = useState([]);
+  const [showMovePicker, setShowMovePicker] = useState(false);
+  const [moveTarget, setMoveTarget] = useState({ category: "", subcategory: "" });
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -455,6 +458,12 @@ export default function App() {
   const loadProfileFor = useCallback(async (userId) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
     if (data) {
+      if (data.banned) {
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+        alert(data.ban_reason ? `이용이 정지된 계정입니다. (${data.ban_reason})` : "이용이 정지된 계정입니다.");
+        return;
+      }
       setCurrentUser(data);
       loadProfiles();
       loadMessages(data.id);
@@ -711,6 +720,19 @@ export default function App() {
       setAuthError("이미 사용중인 닉네임입니다.");
       return;
     }
+    const { data: emailBanned } = await supabase.rpc("is_email_banned", { check_email: email.trim() });
+    if (emailBanned) {
+      setAuthError("해당 이메일로는 가입할 수 없습니다.");
+      return;
+    }
+    const signupIp = await getClientIp();
+    if (signupIp) {
+      const { data: ipBanned } = await supabase.rpc("is_ip_banned", { check_ip: signupIp });
+      if (ipBanned) {
+        setAuthError("이용이 제한된 환경에서는 가입할 수 없습니다.");
+        return;
+      }
+    }
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -761,10 +783,19 @@ export default function App() {
 
   async function handleLogin() {
     const { email, password } = authForm;
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setAuthError("이메일 또는 비밀번호가 일치하지 않습니다.");
       return;
+    }
+    const userId = signInData?.user?.id;
+    if (userId) {
+      const { data: profileRow } = await supabase.from("profiles").select("banned, ban_reason").eq("id", userId).single();
+      if (profileRow?.banned) {
+        await supabase.auth.signOut();
+        setAuthError(profileRow.ban_reason ? `이용이 정지된 계정입니다. (${profileRow.ban_reason})` : "이용이 정지된 계정입니다.");
+        return;
+      }
     }
     setAuthModal(null);
   }
@@ -835,6 +866,62 @@ export default function App() {
     setAdminPointsInput("");
   }
 
+  async function adminBanMember(member, alsoBanIp) {
+    const reason = window.prompt("추방 사유를 입력해주세요. (선택사항)", "운영정책 위반") || null;
+    if (!window.confirm(`'${member.nickname}' 회원을 추방하시겠습니까?\n이 이메일로는 재가입이 불가능해집니다.${alsoBanIp ? "\n해당 IP도 함께 차단됩니다." : ""}`)) return;
+    const { error } = await supabase.rpc("admin_ban_member", { member_id: member.id, reason, also_ban_ip: !!alsoBanIp });
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setAdminMembers(prev => prev.map(m => m.id === member.id ? { ...m, banned: true, ban_reason: reason } : m));
+  }
+
+  async function adminUnbanMember(member) {
+    if (!window.confirm(`'${member.nickname}' 회원의 추방을 해제하시겠습니까?`)) return;
+    const { error } = await supabase.rpc("admin_unban_member", { member_id: member.id });
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setAdminMembers(prev => prev.map(m => m.id === member.id ? { ...m, banned: false, ban_reason: null } : m));
+  }
+
+  function togglePostSelect(postId) {
+    setSelectedPostIds(prev => prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]);
+  }
+
+  function toggleSelectAllPosts(ids) {
+    setSelectedPostIds(prev => ids.every(id => prev.includes(id)) ? prev.filter(id => !ids.includes(id)) : [...new Set([...prev, ...ids])]);
+  }
+
+  async function bulkDeletePosts() {
+    if (selectedPostIds.length === 0) return;
+    if (!window.confirm(`선택한 ${selectedPostIds.length}개의 글을 삭제하시겠습니까?`)) return;
+    const { error } = await supabase.from("posts").delete().in("id", selectedPostIds);
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setPosts(prev => prev.filter(p => !selectedPostIds.includes(p.id)));
+    setSelectedPostIds([]);
+  }
+
+  async function bulkMovePosts() {
+    if (selectedPostIds.length === 0 || !moveTarget.category) return;
+    const { error } = await supabase.from("posts").update({
+      category: moveTarget.category,
+      subcategory: moveTarget.subcategory || null,
+    }).in("id", selectedPostIds);
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+    setPosts(prev => prev.map(p => selectedPostIds.includes(p.id) ? { ...p, category: moveTarget.category, subcategory: moveTarget.subcategory || null } : p));
+    setSelectedPostIds([]);
+    setShowMovePicker(false);
+  }
+
   async function submitPost() {
     const isContentEmpty = !newPost.content || !newPost.content.replace(/<(.|\n)*?>/g, "").trim();
     if (!newPost.title.trim() || isContentEmpty || !currentUser) return;
@@ -857,6 +944,13 @@ export default function App() {
     }
 
     const ip = await getClientIp();
+    if (ip) {
+      const { data: ipBanned } = await supabase.rpc("is_ip_banned", { check_ip: ip });
+      if (ipBanned) {
+        alert("이용이 제한된 환경에서는 글을 작성할 수 없습니다.");
+        return;
+      }
+    }
     const { data, error } = await supabase.from("posts").insert({
       category: newPost.category,
       subcategory: newPost.subcategory || null,
@@ -876,6 +970,13 @@ export default function App() {
   async function submitComment() {
     if (!commentDraft.trim() || !currentPost || !currentUser) return;
     const ip = await getClientIp();
+    if (ip) {
+      const { data: ipBanned } = await supabase.rpc("is_ip_banned", { check_ip: ip });
+      if (ipBanned) {
+        alert("이용이 제한된 환경에서는 댓글을 작성할 수 없습니다.");
+        return;
+      }
+    }
     const { data, error } = await supabase.from("comments").insert({
       post_id: currentPost.id,
       author_id: currentUser.id,
@@ -1560,6 +1661,38 @@ export default function App() {
                 </div>
               );
             })()}
+            {currentUser?.role === "master" && (() => {
+              const visibleIds = postsByCategory(view.category, view.subcategory).map(p => p.id);
+              return (
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={visibleIds.length > 0 && visibleIds.every(id => selectedPostIds.includes(id))}
+                      onChange={() => toggleSelectAllPosts(visibleIds)}
+                    />
+                    전체선택
+                  </label>
+                  {selectedPostIds.length > 0 && (
+                    <>
+                      <span className="text-xs text-gray-400">{selectedPostIds.length}개 선택됨</span>
+                      <button
+                        onClick={() => { setMoveTarget({ category: "", subcategory: "" }); setShowMovePicker(true); }}
+                        className="text-xs px-2.5 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      >
+                        이동
+                      </button>
+                      <button
+                        onClick={bulkDeletePosts}
+                        className="text-xs px-2.5 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100"
+                      >
+                        삭제
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
             <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
               {view.subcategory && !canListPost({ subcategory: view.subcategory }) ? (
                 <div className="text-center py-10">
@@ -1574,6 +1707,14 @@ export default function App() {
                   )}
                   {postsByCategory(view.category, view.subcategory).map(p => (
                     <div key={p.id} className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3">
+                      {currentUser?.role === "master" && (
+                        <input
+                          type="checkbox"
+                          className="shrink-0"
+                          checked={selectedPostIds.includes(p.id)}
+                          onChange={() => togglePostSelect(p.id)}
+                        />
+                      )}
                       <button onClick={() => openPost(p.id)} className="flex-1 min-w-0 text-left flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                           <span className="font-medium break-words">{p.title}</span>
@@ -2586,6 +2727,7 @@ export default function App() {
                             {m.nickname}
                             {m.role === "master" && <span className="text-[10px] text-indigo-500">👑</span>}
                             {m.role === "staff" && <span className="text-[10px] text-indigo-500">🪖</span>}
+                            {m.banned && <span className="text-[10px] text-red-500 bg-red-50 px-1 rounded">추방됨</span>}
                           </p>
                           <p className="text-[11px] text-gray-400 truncate">{m.email}</p>
                         </div>
@@ -2614,6 +2756,35 @@ export default function App() {
                       <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2 space-y-1">
                         <p>가입일: {formatDate(member.created_at)}</p>
                         <p>차단한 회원 수: {(member.blocked || []).length}명</p>
+                        {member.banned && <p className="text-red-500">추방됨{member.ban_reason ? ` · ${member.ban_reason}` : ""}</p>}
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold mb-2">제재</p>
+                        {member.banned ? (
+                          <button
+                            onClick={() => adminUnbanMember(member)}
+                            className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                          >
+                            추방 해제
+                          </button>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => adminBanMember(member, false)}
+                              className="flex-1 px-3 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                            >
+                              강제추방
+                            </button>
+                            <button
+                              onClick={() => adminBanMember(member, true)}
+                              className="flex-1 px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                              추방 + IP차단
+                            </button>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-gray-400 mt-1.5">추방 시 가입했던 이메일로 재가입할 수 없습니다.</p>
                       </div>
 
                       <div>
@@ -2651,6 +2822,56 @@ export default function App() {
                   );
                 })()}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMovePicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowMovePicker(false)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-base">{selectedPostIds.length}개 글 이동</h3>
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5">이동할 게시판</p>
+              <select
+                value={moveTarget.category}
+                onChange={e => setMoveTarget({ category: e.target.value, subcategory: "" })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm"
+              >
+                <option value="">게시판 선택</option>
+                {CATEGORIES.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            {(() => {
+              const cat = CATEGORIES.find(c => c.id === moveTarget.category);
+              if (!cat || !cat.sub || cat.sub.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1.5">하위 게시판 (선택)</p>
+                  <select
+                    value={moveTarget.subcategory}
+                    onChange={e => setMoveTarget(prev => ({ ...prev, subcategory: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm"
+                  >
+                    <option value="">전체</option>
+                    {cat.sub.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowMovePicker(false)} className="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">취소</button>
+              <button
+                onClick={bulkMovePosts}
+                disabled={!moveTarget.category}
+                className="flex-1 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40"
+              >
+                이동
+              </button>
             </div>
           </div>
         </div>
