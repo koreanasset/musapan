@@ -127,9 +127,7 @@ function rankEmoji(user) {
 function maskIp(ip, isAdmin) {
   if (!ip) return "-";
   if (isAdmin) return ip;
-  const parts = ip.split(".");
-  if (parts.length !== 4) return ip;
-  return `${parts[0]}.${parts[1]}.xxx.xx`;
+  return "비공개";
 }
 
 function formatDate(iso) {
