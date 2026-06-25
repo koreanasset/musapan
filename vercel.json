@@ -1,7 +1,4 @@
 {
-  "crons": [
-    { "path": "/api/cron-stock-brief", "schedule": "30 22 * * 0-4" }
-  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },

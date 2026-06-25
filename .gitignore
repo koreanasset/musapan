@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Local secrets for the PC-based stock brief cron script
+stock-brief.env
