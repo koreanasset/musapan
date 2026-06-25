@@ -1810,7 +1810,7 @@ export default function App() {
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
                   {currentPost.thumbnail && (
-                    <img src={currentPost.thumbnail} alt="" className="w-full max-w-xs rounded-lg border border-gray-200 mb-4" />
+                    <img src={currentPost.thumbnail} alt="" className="w-full max-w-xs rounded-lg border border-gray-200 mb-4 mx-auto block" />
                   )}
                   {(() => {
                     const isOwnPost = currentUser && currentPost.author === currentUser.nickname;
