@@ -1809,6 +1809,9 @@ export default function App() {
                     className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
+                  {currentPost.thumbnail && (
+                    <img src={currentPost.thumbnail} alt="" className="w-full max-w-xs rounded-lg border border-gray-200 mb-4" />
+                  )}
                   {(() => {
                     const isOwnPost = currentUser && currentPost.author === currentUser.nickname;
                     const alreadyLiked = currentUser && currentPost.likedBy.includes(currentUser.id);
