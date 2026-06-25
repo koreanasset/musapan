@@ -1542,6 +1542,9 @@ export default function App() {
                               <span className={`font-bold w-4 text-center shrink-0 ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
                               <span className="text-sm font-bold px-2 py-1 rounded shrink-0" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
                               <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">{p.date}</span>
+                              {p.thumbnail && (
+                                <img src={p.thumbnail} alt="" className="w-9 h-9 rounded object-cover shrink-0" />
+                              )}
                               <span className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 sm:min-w-0 font-medium line-clamp-2 sm:line-clamp-none sm:truncate">{p.title} {p.comments.length > 0 && <span className="text-indigo-500">[{p.comments.length}]</span>}</span>
                               <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0 ml-auto sm:ml-0"><Eye size={11} />{p.views}</span>
                               <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0"><ThumbsUp size={11} />{p.likes}</span>
