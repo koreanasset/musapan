@@ -131,7 +131,15 @@ async function buildAiContent(volumeList, changeList, dateLabel) {
 
 export default async function handler(req, res) {
   if (req.query.debug === "1") {
+    let outboundIp = null;
+    try {
+      const ipRes = await fetch("https://api.ipify.org?format=json");
+      outboundIp = (await ipRes.json()).ip;
+    } catch {
+      outboundIp = "lookup failed";
+    }
     res.status(200).json({
+      outboundIp,
       hasAppKey: !!process.env.KIWOOM_APP_KEY,
       appKeyLen: (process.env.KIWOOM_APP_KEY || "").length,
       hasAppSecret: !!process.env.KIWOOM_APP_SECRET,
