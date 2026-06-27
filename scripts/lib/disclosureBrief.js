@@ -112,11 +112,10 @@ ${sectionData}
 export async function runDisclosureBrief(env) {
   const botAuthorId = env.STOCK_BRIEF_AUTHOR_ID || "901a0ce8-d52d-42dc-bc92-536e84273df2";
 
-  // This script runs the morning after market close, so the data is from
-  // the previous trading day, not the day the post is published.
+  // Unlike the stock ranking brief, this runs the same evening (19:00) the
+  // disclosures were filed, so the data date is today, not the day before.
   const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const dataDate = new Date(kst.getTime() - 24 * 60 * 60 * 1000);
+  const dataDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const dateStr = `${dataDate.getUTCFullYear()}${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}${String(dataDate.getUTCDate()).padStart(2, "0")}`;
   const dateLabel = `${dataDate.getUTCFullYear()}.${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}.${String(dataDate.getUTCDate()).padStart(2, "0")}`;
 
