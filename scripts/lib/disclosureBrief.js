@@ -152,7 +152,7 @@ export async function runDisclosureBrief(env) {
 
   await insertPost(env, {
     category: "stock",
-    subcategory: "주식추천AI",
+    subcategory: "중요공시/뉴스",
     title,
     content,
     thumbnailUrl,

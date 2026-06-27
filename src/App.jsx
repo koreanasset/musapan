@@ -6,7 +6,7 @@ import DOMPurify from "dompurify";
 
 const CATEGORIES = [
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"] },
-  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["주식추천AI", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"] },
+  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"] },
   { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"] },
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"] },
@@ -73,7 +73,7 @@ const BOARD_PERMISSIONS = {
   "보험대란알림": { write: "master", list: "member", detail: "member" },
   "Hey보험딜러 비교견적내줘": { write: "member", list: "guest", detail: "owner" },
   "내보험 진단하기": { write: "member", list: "guest", detail: "owner" },
-  "주식추천AI": { write: "master", list: "guest", detail: "member" },
+  "오늘의 특징주": { write: "master", list: "guest", detail: "member" },
   "칼럼": { write: "master", list: "guest", detail: "guest" },
 };
 
@@ -2189,7 +2189,7 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">제3조 (투자 정보에 대한 책임)</p>
-                  <p>주식추천AI 게시판 등에서 제공되는 모든 투자 관련 정보는 참고 자료일 뿐이며, 이를 근거로 한 투자의 최종 판단과 책임은 투자자 본인에게 있습니다. 투자로 인해 발생하는 손해에 대해 사이트는 어떠한 법적 책임도 지지 않습니다.</p>
+                  <p>오늘의 특징주 게시판 등에서 제공되는 모든 투자 관련 정보는 참고 자료일 뿐이며, 이를 근거로 한 투자의 최종 판단과 책임은 투자자 본인에게 있습니다. 투자로 인해 발생하는 손해에 대해 사이트는 어떠한 법적 책임도 지지 않습니다.</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">제4조 (보험 중개 관련 책임)</p>

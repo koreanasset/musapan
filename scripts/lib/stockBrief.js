@@ -238,7 +238,7 @@ export async function runStockBrief(env) {
 
   await insertPost(env, {
     category: "stock",
-    subcategory: "주식추천AI",
+    subcategory: "오늘의 특징주",
     title,
     content,
     thumbnailUrl,
