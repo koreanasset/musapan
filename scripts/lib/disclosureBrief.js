@@ -116,8 +116,14 @@ export async function runDisclosureBrief(env) {
   // disclosures were filed, so the data date is today, not the day before.
   const now = new Date();
   const dataDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const dateStr = `${dataDate.getUTCFullYear()}${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}${String(dataDate.getUTCDate()).padStart(2, "0")}`;
-  const dateLabel = `${dataDate.getUTCFullYear()}.${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}.${String(dataDate.getUTCDate()).padStart(2, "0")}`;
+  let dateStr = `${dataDate.getUTCFullYear()}${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}${String(dataDate.getUTCDate()).padStart(2, "0")}`;
+  let dateLabel = `${dataDate.getUTCFullYear()}.${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}.${String(dataDate.getUTCDate()).padStart(2, "0")}`;
+
+  // For manual testing/backfill only: override the target date.
+  if (env.DISCLOSURE_DATE_OVERRIDE) {
+    dateStr = env.DISCLOSURE_DATE_OVERRIDE;
+    dateLabel = `${dateStr.slice(0, 4)}.${dateStr.slice(4, 6)}.${dateStr.slice(6, 8)}`;
+  }
 
   const disclosures = await fetchDayDisclosures(env.DART_API_KEY, dateStr);
 
