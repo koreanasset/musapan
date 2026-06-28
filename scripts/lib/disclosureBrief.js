@@ -7,7 +7,7 @@ const DART_BASE = "https://opendart.fss.or.kr/api";
 // before the generic "거래정지" check).
 const CATEGORIES = [
   { label: "횡령ㆍ배임", match: n => n.includes("횡령") || n.includes("배임") },
-  { label: "부도ㆍ은행거래정지", match: n => n.includes("부도") || n.includes("은행거래정지") },
+  { label: "부도ㆍ은행거래정지ㆍ파산", match: n => n.includes("부도") || n.includes("은행거래정지") || n.includes("파산") || n.includes("회생절차") },
   { label: "상장폐지", match: n => n.includes("상장폐지") },
   { label: "거래정지", match: n => n.includes("거래정지") },
   { label: "관리종목 지정", match: n => n.includes("관리종목") },
@@ -62,7 +62,9 @@ function buildTemplateContent(byCategory, dateLabel) {
     .map(({ label }) => `<h2>${label}</h2>\n<ul>\n${listRows(byCategory[label])}\n</ul>`)
     .join("\n");
 
-  return `<p>${dateLabel} DART(전자공시시스템)에 접수된 주요 공시를 자동으로 정리해드립니다. 아래 내용은 공시 사실을 그대로 요약한 정보이며, 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>
+  return `<p>${dateLabel} 오늘의 주식시장 주요 공시 내용을 정리해서 알려 드립니다. 매일 매일 주식 중요 공시 내용을 수집하여 정리해서 올려 드리니 코리안에셋 사이트를 즐겨찾기 해두시고 정리된 핵심 공시 정보를 받아 가세요.</p>
+<p>알려 드리는 주식시장 주요 공시는 거래정지, 상장폐지 관련, 파산 공시, 계약체결, 전환사채발행, 유상증자, 무상증자, 회사 합병 및 분할, 타법인 주식 취득, 최대주주 변경, 감자, 자기주식 취득 및 처분등의 공시 입니다.</p>
+<p>투자에 있어 매우 중요한 공시들만 따로 정리해서 매일 매일 업데이트 해드리니 투자에 참고 하시기 바라며, 아래 내용은 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>
 ${sections}`;
 }
 
@@ -83,10 +85,9 @@ ${sectionData}
 이 데이터를 바탕으로 커뮤니티 게시판에 올릴 글을 HTML로 작성해줘. 반드시 지킬 것:
 - <p>, <h2>, <ul><li>, <a> 태그만 사용 (마크다운 금지, 코드블록 금지)
 - 매수/매도 추천, 투자 권유, 호재/악재 단정 표현 절대 금지. 공시 사실만 객관적으로 전달
-- "오늘", "오늘의" 대신 정확한 날짜(${dateLabel})를 명시. 이 날짜는 글이 올라가는 날이 아니라 공시가 접수된 전 거래일임
+- 글 맨 앞(메타 설명에 노출될 부분)에 날짜(${dateLabel})와 함께 "오늘의 주식시장 주요 공시 내용을 정리해서 알려 드립니다", 매일 업데이트된다는 점, 코리안에셋 사이트를 즐겨찾기 해두라는 권유, 오늘 다루는 공시 카테고리 목록, 투자 권유가 아니라는 안내, [원문보기]에서 확인하라는 안내를 자연스러운 문장 2~3개로 작성할 것
 - 카테고리별로 소제목(h2)을 만들어서 정리하고, 데이터에 없는 카테고리는 만들지 말 것
 - 각 항목마다 회사명과 공시명을 적고, 끝에 <a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=접수번호" target="_blank" rel="noopener noreferrer">[원문보기]</a> 링크를 반드시 포함
-- 글 맨 앞에 "이 글은 매수·매도 권유가 아니며 공시 사실을 요약한 정보"라는 안내문 포함
 - 다른 설명 없이 HTML 본문만 출력`;
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
