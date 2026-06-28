@@ -143,14 +143,14 @@ async function buildAiContent(env, bySection, dateLabel) {
 등락률 상위 5종목: ${JSON.stringify(changeList.map(s => toPlain(s, false)))}`;
   }).join("\n\n");
 
-  const prompt = `다음은 ${dateLabel}(전 거래일) 코스피·코스닥 시장 마감 기준 데이터다. 레버리지·인버스 ETN/ETF 상품은 거래량/등락률 규모가 일반 종목과 크게 달라서 따로 분리되어 있다. 세 그룹(코스피, 코스닥, 레버리지·인버스 상품)을 서로 합치지 말 것.
+  const prompt = `다음은 ${dateLabel} 코스피·코스닥 시장 마감 기준 데이터다. 레버리지·인버스 ETN/ETF 상품은 거래량/등락률 규모가 일반 종목과 크게 달라서 따로 분리되어 있다. 세 그룹(코스피, 코스닥, 레버리지·인버스 상품)을 서로 합치지 말 것.
 
 ${sectionData}
 
 이 데이터를 바탕으로 커뮤니티 게시판에 올릴 글을 HTML로 작성해줘. 반드시 지킬 것:
 - <p>, <h2>, <ul><li> 태그만 사용 (마크다운 금지, 코드블록 금지)
 - 매수/매도 추천, 투자 권유, "사세요", "좋습니다", "유망합니다" 같은 표현 절대 금지. 객관적 수치 설명만.
-- "오늘", "오늘의" 같은 표현 대신 정확한 날짜(${dateLabel})를 명시할 것. 이 날짜는 글이 올라가는 날이 아니라 데이터가 집계된 전 거래일임.
+- "오늘", "오늘의" 같은 표현 대신 정확한 날짜(${dateLabel})를 명시할 것.
 - 코스피, 코스닥, 레버리지·인버스 상품 세 그룹을 절대 합치지 말고, 각 그룹별로 "상한가 종목", "거래량 상위", "등락률 상위" 소제목(h2)을 따로 만들어서 정리 (총 9개의 h2). 상한가 종목이 없으면 "상한가에 도달한 종목이 없습니다"라고 적을 것
 - 글 맨 앞에 "이 글은 매수·매도 권유가 아니며 투자 판단의 책임은 본인에게 있다"는 안내문 포함
 - 출처를 밝히는 문구는 넣지 말 것
@@ -216,11 +216,10 @@ export async function runStockBrief(env) {
     bySection[label] = { volumeList, changeList, limitUpList };
   }
 
-  // This script runs the morning after market close, so the data is from
-  // the previous trading day, not the day the post is published.
+  // This script runs the same evening (18:30) the market closed, so the
+  // data date is today, not the day before.
   const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const dataDate = new Date(kst.getTime() - 24 * 60 * 60 * 1000);
+  const dataDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const dateLabel = `${dataDate.getUTCFullYear()}.${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}.${String(dataDate.getUTCDate()).padStart(2, "0")}`;
 
   const aiContent = await buildAiContent(env, bySection, dateLabel);
