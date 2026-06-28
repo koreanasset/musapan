@@ -52,7 +52,7 @@ async function fetchDayDisclosures(apiKey, dateStr) {
 
 function listRows(items) {
   return items
-    .map(d => `<li>${d.corp_name} - ${d.report_nm.trim()} <a href="https://dart.fss.or.kr/dsaf001/main.do?rcptNo=${d.rcept_no}" target="_blank" rel="noopener noreferrer">[원문보기]</a></li>`)
+    .map(d => `<li>${d.corp_name} - ${d.report_nm.trim()} <a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${d.rcept_no}" target="_blank" rel="noopener noreferrer">[원문보기]</a></li>`)
     .join("\n");
 }
 
@@ -85,7 +85,7 @@ ${sectionData}
 - 매수/매도 추천, 투자 권유, 호재/악재 단정 표현 절대 금지. 공시 사실만 객관적으로 전달
 - "오늘", "오늘의" 대신 정확한 날짜(${dateLabel})를 명시. 이 날짜는 글이 올라가는 날이 아니라 공시가 접수된 전 거래일임
 - 카테고리별로 소제목(h2)을 만들어서 정리하고, 데이터에 없는 카테고리는 만들지 말 것
-- 각 항목마다 회사명과 공시명을 적고, 끝에 <a href="https://dart.fss.or.kr/dsaf001/main.do?rcptNo=접수번호" target="_blank" rel="noopener noreferrer">[원문보기]</a> 링크를 반드시 포함
+- 각 항목마다 회사명과 공시명을 적고, 끝에 <a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=접수번호" target="_blank" rel="noopener noreferrer">[원문보기]</a> 링크를 반드시 포함
 - 글 맨 앞에 "이 글은 매수·매도 권유가 아니며 공시 사실을 요약한 정보"라는 안내문 포함
 - 다른 설명 없이 HTML 본문만 출력`;
 
