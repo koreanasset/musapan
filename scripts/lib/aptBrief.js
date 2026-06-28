@@ -30,11 +30,11 @@ function fmtCount(n) {
 
 function listItem(d, { showPeriod }) {
   const period = showPeriod ? `<br>청약접수: ${d.청약접수시작일 || "-"} ~ ${d.청약접수종료일 || "-"}` : "";
-  return `<li><strong>${d.주택명}</strong> (${d.공급지역명})
-<br>위치: ${d.공급위치 || "정보 없음"}
+  return `<h2>${d.주택명} (${d.공급지역명})</h2>
+<p>위치: ${d.공급위치 || "정보 없음"}
 <br>공급규모: ${fmtCount(d.공급규모)} | 시행사: ${d.사업주체명_시행사 || "-"} | 시공사: ${d.건설업체명_시공사 || "-"}${period}
 <br>모집공고일: ${d.모집공고일 || "-"} | 당첨자발표일: ${d.당첨자발표일 || "-"} | 입주예정월: ${d.입주예정월 || "-"}
-<br><a href="${d.모집공고홈페이지주소 || "https://www.applyhome.co.kr"}" target="_blank" rel="noopener noreferrer">[공고 원문보기]</a></li>`;
+<br><a href="${d.모집공고홈페이지주소 || "https://www.applyhome.co.kr"}" target="_blank" rel="noopener noreferrer">[공고 원문보기]</a></p>`;
 }
 
 function buildContent(items, dateLabel, mode) {
@@ -43,7 +43,7 @@ function buildContent(items, dateLabel, mode) {
     : `<p>${dateLabel} 청약접수가 시작되는 단지를 자동으로 정리해드립니다. 한국부동산원 청약홈 공공데이터를 기준으로 하며, 특정 단지에 대한 청약 권유가 아닙니다. 정확한 내용은 [공고 원문보기]에서 직접 확인하시길 권장드립니다.</p>`;
 
   const rows = items.map(d => listItem(d, { showPeriod: mode === "announcement" })).join("\n");
-  return `${intro}\n<ul>\n${rows}\n</ul>`;
+  return `${intro}\n${rows}`;
 }
 
 async function postBrief(env, { items, dateLabel, mode, titleSuffix, thumbnailTitle }) {
