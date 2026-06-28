@@ -59,11 +59,29 @@ async function fetchTopVolumeByMarket(token, mrkt_tp) {
   return (data.tdy_trde_qty_upper || []).filter(s => Number(s.trde_qty) < 1_000_000_000);
 }
 
-// pred_pre_sig: 1=상한가, 2=상승, 3=보합, 4=하락, 5=하한가 (Kiwoom convention)
-async function fetchChangeRateByMarket(token, mrkt_tp) {
+// ka10027 sort_tp: 1=상승률상위, 3=하락률상위 (verified by inspection — 2 and 4
+// don't cleanly correspond to either).
+async function fetchRiseRateByMarket(token, mrkt_tp) {
   const data = await rkinfo(token, "ka10027", {
     mrkt_tp,
     sort_tp: "1",
+    mang_stk_incls: "0",
+    crd_cnd: "0",
+    trde_qty_cnd: "0",
+    pric_cnd: "0",
+    trde_prica_cnd: "0",
+    mrkt_open_tp: "0",
+    stex_tp: "3",
+    updown_incls: "0",
+    stk_cnd: "0",
+  });
+  return data.pred_pre_flu_rt_upper || [];
+}
+
+async function fetchDeclineRateByMarket(token, mrkt_tp) {
+  const data = await rkinfo(token, "ka10027", {
+    mrkt_tp,
+    sort_tp: "3",
     mang_stk_incls: "0",
     crd_cnd: "0",
     trde_qty_cnd: "0",
@@ -105,13 +123,18 @@ function listRows(list, withVolume) {
 
 function buildTemplateContent(bySection, dateLabel) {
   const sections = SECTION_LABELS.map(label => {
-    const { volumeList, changeList, limitUpList } = bySection[label];
+    const { volumeList, changeList, declineList, limitUpList, limitDownList } = bySection[label];
     const limitUpSection = limitUpList.length > 0
       ? `<ul>\n${listRows(limitUpList, false)}\n</ul>`
       : `<p>${dateLabel} ${label} 중 상한가에 도달한 종목이 없습니다.</p>`;
+    const limitDownSection = limitDownList.length > 0
+      ? `<ul>\n${listRows(limitDownList, false)}\n</ul>`
+      : `<p>${dateLabel} ${label} 중 하한가에 도달한 종목이 없습니다.</p>`;
 
     return `<h2>${label} 상한가 종목</h2>
 ${limitUpSection}
+<h2>${label} 하한가 종목</h2>
+${limitDownSection}
 <h2>${label} 거래량 상위 종목</h2>
 <ul>
 ${listRows(volumeList, true)}
@@ -119,10 +142,14 @@ ${listRows(volumeList, true)}
 <h2>${label} 등락률 상위 종목</h2>
 <ul>
 ${listRows(changeList, false)}
+</ul>
+<h2>${label} 하락 상위 종목</h2>
+<ul>
+${listRows(declineList, false)}
 </ul>`;
   }).join("\n");
 
-  return `<p>${dateLabel} 코스피·코스닥 시장 마감 데이터를 자동으로 정리해드립니다. 레버리지·인버스 상품은 거래량/등락률 규모가 일반 종목과 크게 달라 별도 섹션으로 분리했습니다. 아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.</p>
+  return `<p>${dateLabel} 오늘의 주식 시장 마감 데이터를 공유 드립니다. 일별 상한가 종목, 하한가 종목, 등락률 상위 종목, 거래량 상위 종목을 매일 매일 업데이트 해 드립니다. 레버리지 및 인버스(ETF 및 ETN) 상품도 포함되어 있으니 투자에 참고 하시기 바라며 아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.</p>
 ${sections}`;
 }
 
@@ -136,11 +163,13 @@ async function buildAiContent(env, bySection, dateLabel) {
   });
 
   const sectionData = SECTION_LABELS.map(label => {
-    const { volumeList, changeList, limitUpList } = bySection[label];
+    const { volumeList, changeList, declineList, limitUpList, limitDownList } = bySection[label];
     return `[${label}]
 상한가 종목: ${JSON.stringify(limitUpList.map(s => toPlain(s, false)))}
+하한가 종목: ${JSON.stringify(limitDownList.map(s => toPlain(s, false)))}
 거래량 상위 5종목: ${JSON.stringify(volumeList.map(s => toPlain(s, true)))}
-등락률 상위 5종목: ${JSON.stringify(changeList.map(s => toPlain(s, false)))}`;
+등락률(상승) 상위 5종목: ${JSON.stringify(changeList.map(s => toPlain(s, false)))}
+하락률 상위 5종목: ${JSON.stringify(declineList.map(s => toPlain(s, false)))}`;
   }).join("\n\n");
 
   const prompt = `다음은 ${dateLabel} 코스피·코스닥 시장 마감 기준 데이터다. 레버리지·인버스 ETN/ETF 상품은 거래량/등락률 규모가 일반 종목과 크게 달라서 따로 분리되어 있다. 세 그룹(코스피, 코스닥, 레버리지·인버스 상품)을 서로 합치지 말 것.
@@ -151,7 +180,7 @@ ${sectionData}
 - <p>, <h2>, <ul><li> 태그만 사용 (마크다운 금지, 코드블록 금지)
 - 매수/매도 추천, 투자 권유, "사세요", "좋습니다", "유망합니다" 같은 표현 절대 금지. 객관적 수치 설명만.
 - "오늘", "오늘의" 같은 표현 대신 정확한 날짜(${dateLabel})를 명시할 것.
-- 코스피, 코스닥, 레버리지·인버스 상품 세 그룹을 절대 합치지 말고, 각 그룹별로 "상한가 종목", "거래량 상위", "등락률 상위" 소제목(h2)을 따로 만들어서 정리 (총 9개의 h2). 상한가 종목이 없으면 "상한가에 도달한 종목이 없습니다"라고 적을 것
+- 코스피, 코스닥, 레버리지·인버스 상품 세 그룹을 절대 합치지 말고, 각 그룹별로 "상한가 종목", "하한가 종목", "거래량 상위", "등락률 상위", "하락 상위" 소제목(h2)을 따로 만들어서 정리 (총 15개의 h2). 상한가/하한가 종목이 없으면 "상한가(또는 하한가)에 도달한 종목이 없습니다"라고 적을 것
 - 글 맨 앞에 "이 글은 매수·매도 권유가 아니며 투자 판단의 책임은 본인에게 있다"는 안내문 포함
 - 출처를 밝히는 문구는 넣지 말 것
 - 다른 설명 없이 HTML 본문만 출력`;
@@ -187,12 +216,14 @@ export async function runStockBrief(env) {
   const token = await getKiwoomToken(env);
 
   const volumeByMarket = await Promise.all(MARKET_CODES.map(code => fetchTopVolumeByMarket(token, code)));
-  const changeByMarket = await Promise.all(MARKET_CODES.map(code => fetchChangeRateByMarket(token, code)));
+  const riseByMarket = await Promise.all(MARKET_CODES.map(code => fetchRiseRateByMarket(token, code)));
+  const declineByMarket = await Promise.all(MARKET_CODES.map(code => fetchDeclineRateByMarket(token, code)));
 
   const allVolume = dedupeByCode(volumeByMarket.flat());
-  const allChange = dedupeByCode(changeByMarket.flat());
+  const allRise = dedupeByCode(riseByMarket.flat());
+  const allDecline = dedupeByCode(declineByMarket.flat());
 
-  if (allVolume.length === 0 && allChange.length === 0) {
+  if (allVolume.length === 0 && allRise.length === 0 && allDecline.length === 0) {
     return { skipped: true, reason: "no market data (holiday or closed)" };
   }
 
@@ -200,7 +231,7 @@ export async function runStockBrief(env) {
   // can include KOSDAQ names too. mrkt_tp="101" is reliably KOSDAQ-scoped
   // (verified by inspection), so use that as the authoritative KOSDAQ set
   // and treat anything else (that isn't leveraged) as KOSPI by elimination.
-  const kosdaqCodes = new Set(volumeByMarket[1].map(s => s.stk_cd).concat(changeByMarket[1].map(s => s.stk_cd)));
+  const kosdaqCodes = new Set(volumeByMarket[1].map(s => s.stk_cd).concat(riseByMarket[1].map(s => s.stk_cd)));
 
   function classify(s) {
     if (isLeveragedProduct(s.stk_nm)) return "레버리지·인버스 상품";
@@ -210,10 +241,17 @@ export async function runStockBrief(env) {
   const bySection = {};
   for (const label of SECTION_LABELS) {
     const volumeList = topN(allVolume.filter(s => classify(s) === label), s => Number(s.trde_qty), 5);
-    const changeFullForLabel = allChange.filter(s => classify(s) === label);
-    const changeList = topN(changeFullForLabel, s => parseFloat(s.flu_rt), 5);
-    const limitUpList = changeFullForLabel.filter(s => s.pred_pre_sig === "1");
-    bySection[label] = { volumeList, changeList, limitUpList };
+    const riseFullForLabel = allRise.filter(s => classify(s) === label);
+    const declineFullForLabel = allDecline.filter(s => classify(s) === label);
+    const changeList = topN(riseFullForLabel, s => parseFloat(s.flu_rt), 5);
+    const declineList = topN(declineFullForLabel, s => -parseFloat(s.flu_rt), 5);
+    // pred_pre_sig from this endpoint is just a generic up/down direction
+    // flag, not a "hit the price limit" indicator (every row in the decline
+    // list comes back as sig=5 regardless of magnitude). KRX's daily price
+    // band is ±30%, so detect actual limit hits by the change rate itself.
+    const limitUpList = riseFullForLabel.filter(s => parseFloat(s.flu_rt) >= 29.5);
+    const limitDownList = declineFullForLabel.filter(s => parseFloat(s.flu_rt) <= -29.5);
+    bySection[label] = { volumeList, changeList, declineList, limitUpList, limitDownList };
   }
 
   // This script runs the same evening (18:30) the market closed, so the
@@ -224,8 +262,8 @@ export async function runStockBrief(env) {
 
   const aiContent = await buildAiContent(env, bySection, dateLabel);
   const content = aiContent || buildTemplateContent(bySection, dateLabel);
-  const thumbnailTitle = "상한가 종목, 거래량·등락률 순위";
-  const title = `[데이터브리핑] ${dateLabel} ${thumbnailTitle}`;
+  const thumbnailTitle = "주식 상승률·하락률 순위, 거래량·등락률 순위 정보";
+  const title = `${dateLabel} 주식 상승률 순위 및 하락률 순위, 거래량 및 등락률 순위 정보`;
 
   let thumbnailUrl = null;
   try {
