@@ -38,10 +38,15 @@ export default async function handler(req, res) {
   }
 
   const title = post.title;
-  const description = stripHtml(post.content).slice(0, 150);
+  const fullText = stripHtml(post.content);
+  const description = fullText.slice(0, 150); // meta description: short, by convention
   const image = post.thumbnail_url || fallbackImage;
   const url = `${base}${req.query.path || `/post/${post.id}`}`;
 
+  // Meta tags (og:description etc.) stay short for link previews (Kakao,
+  // Facebook, Twitter only read these tags). The <body> below carries the
+  // FULL post text so search engine crawlers — which read body content,
+  // not just meta tags — can index more than a 150-character snippet.
   const html = `<!doctype html>
 <html lang="ko">
 <head>
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
 </head>
 <body>
 <h1>${escapeHtml(title)}</h1>
-<p>${escapeHtml(description)}</p>
+<p>${escapeHtml(fullText)}</p>
 </body>
 </html>`;
 
