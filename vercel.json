@@ -33,14 +33,14 @@
       "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
       "destination": "/api/list-meta?category=:category&sub=:sub"
     },
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/hot", "destination": "/index.html" },
-    { "source": "/point", "destination": "/index.html" },
-    { "source": "/write", "destination": "/index.html" },
-    { "source": "/post/:id(\\d+)", "destination": "/index.html" },
-    { "source": "/:category(stock|realestate|insurance|finance|politics|community)", "destination": "/index.html" },
-    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub", "destination": "/index.html" },
-    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:id(\\d+)", "destination": "/index.html" },
-    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)", "destination": "/index.html" }
+    { "source": "/", "destination": "/app.html" },
+    { "source": "/hot", "destination": "/app.html" },
+    { "source": "/point", "destination": "/app.html" },
+    { "source": "/write", "destination": "/app.html" },
+    { "source": "/post/:id(\\d+)", "destination": "/app.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)", "destination": "/app.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub", "destination": "/app.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:id(\\d+)", "destination": "/app.html" },
+    { "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)", "destination": "/app.html" }
   ]
 }
