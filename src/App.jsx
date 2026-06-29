@@ -26,7 +26,10 @@ function findSubcategoryBySlug(cat, slug) {
   return cat.sub.find(s => slugify(s) === slug) || null;
 }
 
+const HOME_VIEW = { page: "home", category: null, subcategory: null, postId: null };
+
 function buildPath(view) {
+  if (view.page === "legal") return `/${view.legal}`;
   if (view.page === "detail" && view.postId) {
     if (view.category) {
       const base = view.subcategory ? `/${view.category}/${slugify(view.subcategory)}` : `/${view.category}`;
@@ -55,6 +58,9 @@ function parseViewFromPath(pathname) {
   if (parts[0] === "hot") return { page: "hot", category: "hot", subcategory: null, postId: null };
   if (parts[0] === "point") return { page: "point", category: "point", subcategory: null, postId: null };
   if (parts[0] === "write") return { page: "write", category: null, subcategory: null, postId: null };
+  if (["about", "terms", "privacy"].includes(parts[0])) {
+    return { page: "legal", category: null, subcategory: null, postId: null, legal: parts[0] };
+  }
   const cat = BOARD_CATEGORIES.find(c => c.id === parts[0]);
   if (cat) {
     if (parts.length === 1) return { page: "category", category: cat.id, subcategory: null, postId: null };
@@ -383,6 +389,10 @@ export default function App() {
   useEffect(() => {
     history.replaceState(view, "", buildPath(view));
   }, []);
+
+  useEffect(() => {
+    if (view.page === "legal") setLegalModal(view.legal);
+  }, [view]);
 
   useEffect(() => {
     if (!didMountRef.current) {
@@ -2151,9 +2161,9 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
           <p className="text-white font-bold mb-2">코리안에셋</p>
           <p className="flex justify-center gap-3 mb-2">
-            <button onClick={() => setLegalModal("about")} className="hover:text-white">회사소개</button>
-            <button onClick={() => setLegalModal("terms")} className="hover:text-white">이용약관</button>
-            <button onClick={() => setLegalModal("privacy")} className="hover:text-white text-gray-300">개인정보처리방침</button>
+            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "about" })} className="hover:text-white">회사소개</button>
+            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "terms" })} className="hover:text-white">이용약관</button>
+            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" })} className="hover:text-white text-gray-300">개인정보처리방침</button>
             <button onClick={() => setLegalModal("ad")} className="hover:text-white">광고/제휴문의</button>
           </p>
           <p>© 2026 koreanAsset. All rights reserved.</p>
@@ -2161,13 +2171,13 @@ export default function App() {
       </footer>
 
       {legalModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => setLegalModal(null)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => { setLegalModal(null); if (view.page === "legal") setView(HOME_VIEW); }}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">
                 {legalModal === "about" ? "회사소개" : legalModal === "terms" ? "이용약관" : legalModal === "privacy" ? "개인정보처리방침" : "광고/제휴문의"}
               </h3>
-              <button onClick={() => setLegalModal(null)}><X size={18} className="text-gray-400" /></button>
+              <button onClick={() => { setLegalModal(null); if (view.page === "legal") setView(HOME_VIEW); }}><X size={18} className="text-gray-400" /></button>
             </div>
 
             {legalModal === "about" && (

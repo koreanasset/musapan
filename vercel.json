@@ -34,6 +34,9 @@
       "destination": "/api/list-meta?category=:category&sub=:sub"
     },
     { "source": "/", "destination": "/app.html" },
+    { "source": "/about", "destination": "/app.html" },
+    { "source": "/terms", "destination": "/app.html" },
+    { "source": "/privacy", "destination": "/app.html" },
     { "source": "/hot", "destination": "/app.html" },
     { "source": "/point", "destination": "/app.html" },
     { "source": "/write", "destination": "/app.html" },
