@@ -47,7 +47,9 @@ async function fetchDayDisclosures(apiKey, dateStr) {
     if (page >= (data.total_page || 1)) break;
     page += 1;
   }
-  return all;
+  // corp_cls: Y=코스피, K=코스닥, N=코넥스, E=기타(비상장 등) — only keep
+  // listed (KOSPI/KOSDAQ) companies.
+  return all.filter(d => d.corp_cls === "Y" || d.corp_cls === "K");
 }
 
 function listRows(items) {
