@@ -18,6 +18,21 @@
       "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
       "destination": "/api/post-meta?id=:id&path=/:category/:sub/:id"
     },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/list-meta"
+    },
+    {
+      "source": "/:category(stock|realestate|insurance|finance|politics|community)",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/list-meta?category=:category"
+    },
+    {
+      "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "destination": "/api/list-meta?category=:category&sub=:sub"
+    },
     { "source": "/", "destination": "/index.html" },
     { "source": "/hot", "destination": "/index.html" },
     { "source": "/point", "destination": "/index.html" },
