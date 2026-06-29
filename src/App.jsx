@@ -2161,9 +2161,9 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
           <p className="text-white font-bold mb-2">코리안에셋</p>
           <p className="flex justify-center gap-3 mb-2">
-            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "about" })} className="hover:text-white">회사소개</button>
-            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "terms" })} className="hover:text-white">이용약관</button>
-            <button onClick={() => setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" })} className="hover:text-white text-gray-300">개인정보처리방침</button>
+            <a href="/about" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "about" }); }} className="hover:text-white">회사소개</a>
+            <a href="/terms" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "terms" }); }} className="hover:text-white">이용약관</a>
+            <a href="/privacy" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" }); }} className="hover:text-white text-gray-300">개인정보처리방침</a>
             <button onClick={() => setLegalModal("ad")} className="hover:text-white">광고/제휴문의</button>
           </p>
           <p>© 2026 koreanAsset. All rights reserved.</p>
