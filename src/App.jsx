@@ -407,6 +407,10 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    setSearch("");
+  }, [view]);
+
+  useEffect(() => {
     function onPopState(e) {
       isPoppingRef.current = true;
       setView(e.state || parseViewFromPath(window.location.pathname));
@@ -1548,7 +1552,7 @@ export default function App() {
                         {hotPosts.map((p, i) => {
                           const cat = CATEGORIES.find(c => c.id === p.category);
                           return (
-                            <button key={p.id} onClick={() => openPost(p.id)} className="w-full text-left py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 hover:bg-gray-50 -mx-1 px-1 rounded">
+                            <button key={p.id} onClick={() => openPost(p.id)} className="w-full text-left py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 hover:bg-gray-50 -mx-1 px-1 rounded">
                               <span className={`font-bold w-4 text-center shrink-0 ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
                               <span className="text-sm font-bold px-2 py-1 rounded shrink-0" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
                               <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">{p.date}</span>
