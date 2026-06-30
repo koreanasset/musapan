@@ -4,18 +4,26 @@ import { supabase } from "./lib/supabaseClient";
 import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
 
+// hidden: category has no content yet, so it's kept out of nav/sitemap/routing
+// until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
+// presentational — permissions/config stay intact, just toggle these off when
+// ready to reveal.
 const CATEGORIES = [
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"] },
-  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"] },
-  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"] },
-  { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"] },
-  { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"] },
-  { id: "politics", name: "정치사회", icon: Megaphone, color: "#8b5cf6", sub: ["정치토론방", "사회, 사건사고", "생활 법률", "보수", "중도", "진보"] },
-  { id: "community", name: "커뮤니티", icon: Users, color: "#06b6d4", sub: ["유머, 움짤", "자유게시판", "스포츠", "육아 정보", "뷰티 정보", "헬스, 다이어트, 운동"] },
+  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
+  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"] },
+  { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"], hiddenSubs: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기"] },
+  { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"], hidden: true },
+  { id: "politics", name: "정치사회", icon: Megaphone, color: "#8b5cf6", sub: ["정치토론방", "사회, 사건사고", "생활 법률", "보수", "중도", "진보"], hidden: true },
+  { id: "community", name: "커뮤니티", icon: Users, color: "#06b6d4", sub: ["유머, 움짤", "자유게시판", "스포츠", "육아 정보", "뷰티 정보", "헬스, 다이어트, 운동"], hiddenSubs: ["유머, 움짤", "스포츠", "육아 정보", "뷰티 정보", "헬스, 다이어트, 운동"] },
   { id: "point", name: "포인트놀이터", icon: Target, color: "#f97316", sub: ["포인트 복권방", "포인트 교환처"] },
 ];
 
-const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point");
+const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point" && !c.hidden);
+
+function visibleSubs(cat) {
+  return cat.sub.filter(s => !(cat.hiddenSubs || []).includes(s));
+}
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
@@ -23,7 +31,9 @@ function slugify(name) {
 
 function findSubcategoryBySlug(cat, slug) {
   if (!cat.sub) return null;
-  return cat.sub.find(s => slugify(s) === slug) || null;
+  // Hidden subs resolve to null (falls back to the category's "전체" view)
+  // instead of exposing a dedicated, empty-looking page for them.
+  return visibleSubs(cat).find(s => slugify(s) === slug) || null;
 }
 
 const HOME_VIEW = { page: "home", category: null, subcategory: null, postId: null };
@@ -1442,7 +1452,7 @@ export default function App() {
         </div>
         <nav className="border-t border-gray-100 bg-gray-50 relative z-30 overflow-visible">
           <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto overflow-y-visible">
-            {CATEGORIES.map(c => {
+            {CATEGORIES.filter(c => !c.hidden).map(c => {
               const isOpen = isMobile ? clickedNav === c.id : hoveredNav === c.id;
               return (
                 <div
@@ -1467,7 +1477,7 @@ export default function App() {
                     <c.icon size={15} style={{ color: view.category === c.id || isOpen ? "#ef4444" : c.color }} />
                     {c.name}
                   </button>
-                  {c.sub && c.sub.length > 0 && isOpen && (
+                  {visibleSubs(c).length > 0 && isOpen && (
                     <div
                       style={{ position: "fixed", zIndex: 9999, minWidth: "200px" }}
                       ref={el => {
@@ -1480,7 +1490,7 @@ export default function App() {
                       }}
                       className="bg-white border border-gray-200 rounded-b-lg shadow-xl py-1.5"
                     >
-                      {c.sub.map((s, i) => {
+                      {visibleSubs(c).map((s, i) => {
                         const subKey = `${c.id}-${i}`;
                         return (
                           <button
@@ -1674,7 +1684,8 @@ export default function App() {
             </div>
             {(() => {
               const cat = CATEGORIES.find(c => c.id === view.category);
-              if (!cat.sub || cat.sub.length === 0) return null;
+              const subs = visibleSubs(cat);
+              if (subs.length === 0) return null;
               return (
                 <div className="flex gap-1.5 mb-3 flex-wrap">
                   <button
@@ -1683,7 +1694,7 @@ export default function App() {
                   >
                     전체
                   </button>
-                  {cat.sub.map(s => {
+                  {subs.map(s => {
                     const restricted = !canListPost({ subcategory: s }) ? "🔒 " : "";
                     return (
                       <button
@@ -2080,7 +2091,8 @@ export default function App() {
                 </div>
                 {(() => {
                   const cat = BOARD_CATEGORIES.find(c => c.id === newPost.category);
-                  if (!cat || !cat.sub || cat.sub.length === 0) return null;
+                  const subs = cat ? visibleSubs(cat) : [];
+                  if (subs.length === 0) return null;
                   return (
                     <div className="flex gap-1.5 mb-4 flex-wrap">
                       <button
@@ -2089,7 +2101,7 @@ export default function App() {
                       >
                         세부선택안함
                       </button>
-                      {cat.sub.map(s => {
+                      {subs.map(s => {
                         const locked = !canWriteToSubcategory(s);
                         return (
                           <button

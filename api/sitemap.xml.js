@@ -1,7 +1,10 @@
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-const STATIC_PATHS = ["/", "/hot", "/point", "/stock", "/realestate", "/insurance", "/finance", "/politics", "/community", "/about", "/terms", "/privacy"];
+// finance/politics are excluded: no content yet, so we keep them out of the
+// crawlable surface area until they're ready to launch (toggle CATEGORIES
+// hidden flag in src/App.jsx when that day comes, and add them back here).
+const STATIC_PATHS = ["/", "/hot", "/point", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
