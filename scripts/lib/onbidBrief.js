@@ -59,7 +59,7 @@ ${thumbnail}<strong>${name}</strong> (유찰 ${item.usbdNft}회)
 <br>입찰기간: ${fmtDt(item.cltrBidBgngDt)} ~ ${fmtDt(item.cltrBidEndDt)}
 <br>물건관리번호: ${item.cltrMngNo} (온비드 통합검색에서 이 번호로 조회하시면 상세정보를 확인하실 수 있습니다)
 </div>
-<hr style="border:none;border-top:1px solid #e5e7eb;margin:8px 0;">`;
+<hr style="border:none;border-top:2px solid #9ca3af;margin:8px 0;">`;
 }
 
 function buildContent(byKind, dateLabel) {
