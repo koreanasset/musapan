@@ -16,6 +16,42 @@ function dedupeKey(item) {
   return `${item.cltrMngNo}_${item.pbctCdtnNo}`;
 }
 
+// Keyed by cltrMngNo only (not the round-specific pbctCdtnNo): re-listings
+// after another failed bid get a new pbctCdtnNo but are still the same
+// underlying asset, which is what we don't want to repeat daily.
+async function fetchAlreadyPostedKeys(env) {
+  const r = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/onbid_posted_items?select=cltr_mng_no`, {
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
+  });
+  if (!r.ok) throw new Error(`fetching posted items failed: ${await r.text()}`);
+  const rows = await r.json();
+  return new Set(rows.map(row => row.cltr_mng_no));
+}
+
+async function markItemsAsPosted(env, items) {
+  if (items.length === 0) return;
+  const rows = items.map(item => ({ cltr_mng_no: item.cltrMngNo, pbct_cdtn_no: item.pbctCdtnNo, last_posted_at: new Date().toISOString() }));
+  const r = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/onbid_posted_items?on_conflict=cltr_mng_no`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!r.ok) throw new Error(`marking posted items failed: ${await r.text()}`);
+}
+
+async function cleanupOldPostedItems(env) {
+  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/onbid_posted_items?last_posted_at=lt.${encodeURIComponent(cutoff)}`, {
+    method: "DELETE",
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
+  });
+}
+
 async function fetchKind(env, op, label) {
   const seen = new Map();
   // pvctTrgtYn (수의계약가능여부) is required and doesn't accept comma-joined
@@ -63,7 +99,7 @@ ${thumbnail}<strong>${name}</strong> (유찰 ${item.usbdNft}회)
 }
 
 function buildContent(byKind, dateLabel) {
-  const intro = `<p>${dateLabel} 기준 온비드(Onbid)에 등록된 공매물건 중 유찰이 2회 이상 발생한 물건 상위 20건을 자동으로 정리해드립니다. 유찰이 반복된 물건은 회차가 지날수록 최저입찰가가 낮아지는 경우가 많아 투자 관심이 높은 편입니다.</p>
+  const intro = `<p>${dateLabel} 기준 온비드(Onbid)에 등록된 공매물건 중 유찰이 2회 이상 발생한 물건을 자동으로 정리해드립니다. 이전에 이미 소개해드린 물건은 제외하고, 새로 유찰 2회 이상 조건을 충족한 물건만 모았습니다. 유찰이 반복된 물건은 회차가 지날수록 최저입찰가가 낮아지는 경우가 많아 투자 관심이 높은 편입니다.</p>
 <p>아래 내용은 특정 물건에 대한 매수·입찰 권유가 아니며, 권리관계나 현장 상태 등 자세한 내용은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 검색하여 확인하시길 권장드립니다.</p>
 <p>본 정보에서는 부동산 공매정보, 차량 공매정보, 동산 공매정보를 제공 하며, 매일 매일 물건이 업로드 되니 본 사이트를 즐겨찾기 해두시고 정보를 받아 가시기 바랍니다.</p>`;
 
@@ -83,17 +119,24 @@ export async function runOnbidBrief(env) {
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const dateLabel = `${kst.getUTCFullYear()}.${String(kst.getUTCMonth() + 1).padStart(2, "0")}.${String(kst.getUTCDate()).padStart(2, "0")}`;
 
+  const alreadyPosted = await fetchAlreadyPostedKeys(env);
+
   const byKind = {};
   for (const { key, label, op } of KINDS) {
     const items = await fetchKind(env, op, label);
     // Most heavily failed-on-bid items first.
     items.sort((a, b) => (b.usbdNft || 0) - (a.usbdNft || 0));
-    byKind[key] = items.slice(0, maxPerKind);
+    // Skip items already featured in a previous day's brief (still unsold,
+    // would otherwise repeat every day until someone wins the bid).
+    const newItems = items.filter(item => !alreadyPosted.has(item.cltrMngNo));
+    byKind[key] = newItems.slice(0, maxPerKind);
   }
+
+  await cleanupOldPostedItems(env);
 
   const totalCount = Object.values(byKind).reduce((sum, list) => sum + list.length, 0);
   if (totalCount === 0) {
-    return { skipped: true, reason: "no items with usbdNft >= 2 today" };
+    return { skipped: true, reason: "no new items with usbdNft >= 2 today (all already featured previously)" };
   }
 
   const content = buildContent(byKind, dateLabel);
@@ -116,6 +159,8 @@ export async function runOnbidBrief(env) {
     thumbnailUrl,
     authorId: botAuthorId,
   });
+
+  await markItemsAsPosted(env, Object.values(byKind).flat());
 
   return { success: true, title, totalCount, thumbnailUrl };
 }

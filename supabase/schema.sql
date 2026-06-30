@@ -200,3 +200,15 @@ as $$
 $$ language sql security definer stable set search_path = public, auth;
 
 grant execute on function public.admin_list_profiles() to authenticated;
+
+-- =========================================
+-- 온비드 공매 브리핑 자동화: 이미 소개한 물건(cltrMngNo) 추적용.
+-- 같은 물건이 유찰을 반복해도 매일 다시 노출되지 않도록 한다.
+-- 14일 이상 갱신 없는 행은 매 실행마다 정리된다 (scripts/lib/onbidBrief.js).
+-- =========================================
+create table if not exists onbid_posted_items (
+  cltr_mng_no text primary key,
+  pbct_cdtn_no text,
+  first_posted_at timestamptz not null default now(),
+  last_posted_at timestamptz not null default now()
+);
