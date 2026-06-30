@@ -16,7 +16,7 @@ const CATEGORIES = [
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"], hidden: true },
   { id: "politics", name: "정치사회", icon: Megaphone, color: "#8b5cf6", sub: ["정치토론방", "사회, 사건사고", "생활 법률", "보수", "중도", "진보"], hidden: true },
   { id: "community", name: "커뮤니티", icon: Users, color: "#06b6d4", sub: ["유머, 움짤", "자유게시판", "스포츠", "육아 정보", "뷰티 정보", "헬스, 다이어트, 운동"], hiddenSubs: ["유머, 움짤", "스포츠", "육아 정보", "뷰티 정보", "헬스, 다이어트, 운동"] },
-  { id: "point", name: "포인트놀이터", icon: Target, color: "#f97316", sub: ["포인트 복권방", "포인트 교환처"] },
+  { id: "point", name: "포인트놀이터", icon: Target, color: "#f97316", sub: ["포인트 복권방", "포인트 교환처"], hidden: true },
 ];
 
 const BOARD_CATEGORIES = CATEGORIES.filter(c => c.id !== "hot" && c.id !== "point" && !c.hidden);
@@ -66,7 +66,9 @@ function parseViewFromPath(pathname) {
     if (!Number.isNaN(postId)) return { page: "detail", category: null, subcategory: null, postId };
   }
   if (parts[0] === "hot") return { page: "hot", category: "hot", subcategory: null, postId: null };
-  if (parts[0] === "point") return { page: "point", category: "point", subcategory: null, postId: null };
+  if (parts[0] === "point" && !CATEGORIES.find(c => c.id === "point").hidden) {
+    return { page: "point", category: "point", subcategory: null, postId: null };
+  }
   if (parts[0] === "write") return { page: "write", category: null, subcategory: null, postId: null };
   if (["about", "terms", "privacy"].includes(parts[0])) {
     return { page: "legal", category: null, subcategory: null, postId: null, legal: parts[0] };
