@@ -26,7 +26,11 @@ function visibleSubs(cat) {
 }
 
 function slugify(name) {
-  return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
+  // "/" must be stripped too, not just whitespace/commas — encodeURIComponent
+  // turns a literal "/" into "%2F" inside what's meant to be a single path
+  // segment, and some layers (browsers, Vercel rewrites) normalize that back
+  // into a real "/", silently splitting the URL into an extra segment.
+  return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
 }
 
 function findSubcategoryBySlug(cat, slug) {

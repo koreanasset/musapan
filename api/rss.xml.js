@@ -2,7 +2,7 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 function slugify(name) {
-  return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
+  return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
 }
 
 function escapeXml(s) {

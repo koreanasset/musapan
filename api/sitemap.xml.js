@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const STATIC_PATHS = ["/", "/hot", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
 
 function slugify(name) {
-  return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
+  return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
 }
 
 function escapeXml(s) {

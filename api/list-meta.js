@@ -15,7 +15,7 @@ const CATEGORIES = [
 const LIST_REQUIRES_LOGIN = new Set(["보험대란알림"]);
 
 function slugify(name) {
-  return encodeURIComponent(name.trim().replace(/[\s,]+/g, "-"));
+  return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
 }
 
 function escapeHtml(s) {
