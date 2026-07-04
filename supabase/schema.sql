@@ -212,3 +212,20 @@ create table if not exists onbid_posted_items (
   first_posted_at timestamptz not null default now(),
   last_posted_at timestamptz not null default now()
 );
+
+-- =========================================
+-- 최신 구글 트렌드 순위 위젯: 구글 Daily Search Trends RSS(geo=KR) 상위 10개를
+-- 저장한다 (scripts/lib/googleTrends.js). 피드 자체가 하루에 몇 번만 갱신되므로,
+-- 순위 목록이 실제로 바뀔 때만 upsert 하고 updated_at을 갱신한다.
+-- =========================================
+create table if not exists google_trends (
+  rank int primary key,
+  keyword text not null,
+  traffic text,
+  updated_at timestamptz not null default now()
+);
+
+alter table google_trends enable row level security;
+create policy "google_trends_select_all" on google_trends for select using (true);
+
+alter publication supabase_realtime add table google_trends;

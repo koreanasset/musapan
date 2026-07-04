@@ -246,6 +246,23 @@ function Sidebar({ currentUser, openAuth, profiles }) {
     .sort((a, b) => b.points - a.points)
     .slice(0, 5);
 
+  const [trends, setTrends] = useState([]);
+
+  const loadTrends = useCallback(async () => {
+    const { data } = await supabase.from("google_trends").select("*").order("rank", { ascending: true });
+    if (data) setTrends(data);
+  }, []);
+
+  useEffect(() => { loadTrends(); }, [loadTrends]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("google_trends_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "google_trends" }, () => loadTrends())
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [loadTrends]);
+
   return (
     <>
       <div className="bg-gray-900 text-white rounded-lg p-4">
@@ -266,9 +283,28 @@ function Sidebar({ currentUser, openAuth, profiles }) {
 
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <p className="flex items-center gap-1.5 font-bold text-sm mb-1">
-          <span className="w-2 h-2 rounded-full bg-gray-300" /> 실시간 검색어
+          <span className="w-2 h-2 rounded-full bg-red-500" /> 최신 구글 트렌드 순위
         </p>
-        <p className="text-xs text-gray-300 text-center py-4">v2에서 제공될 예정입니다.</p>
+        {trends.length === 0 ? (
+          <p className="text-xs text-gray-300 text-center py-4">불러오는 중입니다...</p>
+        ) : (
+          <>
+            <ol className="space-y-1.5 mt-2">
+              {trends.map(t => (
+                <li key={t.rank} className="flex items-center gap-2 text-sm">
+                  <span className="w-4 text-center font-bold text-gray-400 shrink-0">{t.rank}</span>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(t.keyword)}`}
+                    className="truncate hover:text-indigo-600 hover:underline"
+                  >
+                    {t.keyword}
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <p className="text-[11px] text-gray-400 mt-2 text-right">업데이트: {formatDateTime(trends[0].updated_at)}</p>
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4">
