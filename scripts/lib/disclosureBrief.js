@@ -15,7 +15,9 @@ const CATEGORIES = [
   { label: "전환사채권발행결정", match: n => n.includes("전환사채권발행결정") },
   { label: "회사합병ㆍ분할결정", match: n => n.includes("합병결정") || n.includes("분할결정") },
   { label: "타법인 주식 취득", match: n => n.includes("타법인주식") || n.includes("타법인 주식") },
-  { label: "최대주주 변경", match: n => n.includes("최대주주") },
+  // "최대주주등소유주식변동/변경신고서" is a routine periodic filing, not an
+  // actual change-of-largest-shareholder event — exclude it explicitly.
+  { label: "최대주주 변경", match: n => n.includes("최대주주") && !n.includes("소유주식") },
   { label: "자기주식 취득ㆍ처분", match: n => n.includes("자기주식") },
   { label: "자본감소(감자)", match: n => n.includes("감자") || n.includes("자본감소") },
   { label: "소송 등의 제기", match: n => n.includes("소송") },
@@ -58,13 +60,31 @@ function listRows(items) {
     .join("\n");
 }
 
+function buildDataIntro(byCategory, dateLabel) {
+  const activeCategories = CATEGORIES.filter(({ label }) => byCategory[label]?.length > 0);
+  const total = activeCategories.reduce((s, { label }) => s + byCategory[label].length, 0);
+  const categoryNames = activeCategories.map(({ label }) => label).join(", ");
+
+  // Highlight high-severity categories if present
+  const severe = ["횡령ㆍ배임", "부도ㆍ은행거래정지ㆍ파산", "상장폐지", "거래정지"]
+    .filter(l => byCategory[l]?.length > 0);
+
+  let text = `${dateLabel} 기준 코스피·코스닥 주요 공시 총 ${total}건이 접수됐습니다.`;
+  if (severe.length > 0) {
+    text += ` 오늘은 특히 ${severe.join(", ")} 관련 공시가 포함되어 있어 보유 종목 여부를 반드시 확인해 보시기 바랍니다.`;
+  } else {
+    text += ` 오늘 다루는 공시 유형은 ${categoryNames}입니다.`;
+  }
+  return `<p>${text}</p>`;
+}
+
 function buildTemplateContent(byCategory, dateLabel) {
   const sections = CATEGORIES
     .filter(({ label }) => byCategory[label] && byCategory[label].length > 0)
     .map(({ label }) => `<h2>${label}</h2>\n<ul>\n${listRows(byCategory[label])}\n</ul>`)
     .join("\n");
 
-  return `<p>${dateLabel} 오늘의 주식시장 주요 공시 내용을 정리해서 알려 드립니다. 매일 매일 주식 중요 공시 내용을 수집하여 정리해서 올려 드리니 코리안에셋 사이트를 즐겨찾기 해두시고 정리된 핵심 공시 정보를 받아 가세요.</p>
+  return `${buildDataIntro(byCategory, dateLabel)}
 <p>알려 드리는 주식시장 주요 공시는 거래정지, 상장폐지 관련, 파산 공시, 계약체결, 전환사채발행, 유상증자, 무상증자, 회사 합병 및 분할, 타법인 주식 취득, 최대주주 변경, 감자, 자기주식 취득 및 처분등의 공시 입니다.</p>
 <p>투자에 있어 매우 중요한 공시들만 따로 정리해서 매일 매일 업데이트 해드리니 투자에 참고 하시기 바라며, 아래 내용은 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>
 ${sections}`;
