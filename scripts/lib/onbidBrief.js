@@ -98,8 +98,40 @@ ${thumbnail}<strong>${name}</strong> (유찰 ${item.usbdNft}회)
 <hr style="border:none;border-top:2px solid #9ca3af;margin:8px 0;">`;
 }
 
+function buildDataIntro(byKind, dateLabel) {
+  const kindStats = KINDS
+    .map(({ key, label }) => ({ label, items: byKind[key] || [] }))
+    .filter(({ items }) => items.length > 0);
+
+  const total = kindStats.reduce((s, { items }) => s + items.length, 0);
+  const kindSummary = kindStats.map(({ label, items }) => `${label} ${items.length}건`).join(", ");
+
+  const allItems = kindStats.flatMap(({ items }) => items);
+  const maxFailed = Math.max(...allItems.map(i => Number(i.usbdNft) || 0));
+
+  // Top 2 시도 by item count
+  const regionCounts = {};
+  for (const item of allItems) {
+    const r = item.lctnSdnm;
+    if (r) regionCounts[r] = (regionCounts[r] || 0) + 1;
+  }
+  const topRegions = Object.entries(regionCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([name]) => name);
+
+  let text = `${dateLabel} 기준으로 오늘 처음 소개되는 공매물건은 총 ${total}건(${kindSummary})입니다.`;
+  if (topRegions.length > 0) {
+    text += ` 지역별로는 ${topRegions.join("·")} 소재 물건이 가장 많이 포함됐으며,`;
+  }
+  text += ` 유찰 횟수는 최대 ${maxFailed}회에 달하는 물건도 있습니다.`;
+  text += ` 유찰이 반복될수록 최저입찰가가 낮아지는 경향이 있어 실수요자·투자자 모두 눈여겨볼 만한 물건들입니다.`;
+
+  return `<p>${text}</p>`;
+}
+
 function buildContent(byKind, dateLabel) {
-  const intro = `<p>${dateLabel} 기준 온비드(Onbid)에 등록된 공매물건 중 유찰이 2회 이상 발생한 물건을 자동으로 정리해드립니다. 이전에 이미 소개해드린 물건은 제외하고, 새로 유찰 2회 이상 조건을 충족한 물건만 모았습니다. 유찰이 반복된 물건은 회차가 지날수록 최저입찰가가 낮아지는 경우가 많아 투자 관심이 높은 편입니다.</p>
+  const intro = `${buildDataIntro(byKind, dateLabel)}
 <p>아래 내용은 특정 물건에 대한 매수·입찰 권유가 아니며, 권리관계나 현장 상태 등 자세한 내용은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 검색하여 확인하시길 권장드립니다.</p>
 <p>본 정보에서는 부동산 공매정보, 차량 공매정보, 동산 공매정보를 제공 하며, 매일 매일 물건이 업로드 되니 본 사이트를 즐겨찾기 해두시고 정보를 받아 가시기 바랍니다.</p>`;
 

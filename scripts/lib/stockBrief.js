@@ -4,6 +4,11 @@ const KIWOOM_BASE = "https://api.kiwoom.com";
 // Kiwoom market_tp codes: "0" = 코스피, "101" = 코스닥 ("1" silently falls back to KOSPI)
 const MARKET_CODES = ["0", "101"];
 const SECTION_LABELS = ["코스피", "코스닥", "레버리지·인버스 상품"];
+const SECTION_COLORS = {
+  "코스피": "#dc2626",
+  "코스닥": "#2563eb",
+  "레버리지·인버스 상품": "#f97316",
+};
 
 // Leveraged/inverse ETN & ETF products trade like derivatives and routinely
 // dominate volume/change-rate rankings; split them out so plain KOSPI/KOSDAQ
@@ -123,6 +128,8 @@ function listRows(list, withVolume) {
 
 function buildTemplateContent(bySection, dateLabel) {
   const sections = SECTION_LABELS.map(label => {
+    const color = SECTION_COLORS[label];
+    const h2 = text => `<h2 style="color:${color}">${text}</h2>`;
     const { volumeList, changeList, declineList, limitUpList, limitDownList } = bySection[label];
     const limitUpSection = limitUpList.length > 0
       ? `<ul>\n${listRows(limitUpList, false)}\n</ul>`
@@ -131,25 +138,52 @@ function buildTemplateContent(bySection, dateLabel) {
       ? `<ul>\n${listRows(limitDownList, false)}\n</ul>`
       : `<p>${dateLabel} ${label} 중 하한가에 도달한 종목이 없습니다.</p>`;
 
-    return `<h2>${label} 상한가 종목</h2>
+    return `${h2(`${label} 상한가 종목`)}
 ${limitUpSection}
-<h2>${label} 하한가 종목</h2>
+${h2(`${label} 하한가 종목`)}
 ${limitDownSection}
-<h2>${label} 거래량 상위 종목</h2>
+${h2(`${label} 거래량 상위 종목`)}
 <ul>
 ${listRows(volumeList, true)}
 </ul>
-<h2>${label} 등락률 상위 종목</h2>
+${h2(`${label} 등락률 상위 종목`)}
 <ul>
 ${listRows(changeList, false)}
 </ul>
-<h2>${label} 하락 상위 종목</h2>
+${h2(`${label} 하락 상위 종목`)}
 <ul>
 ${listRows(declineList, false)}
 </ul>`;
   }).join("\n");
 
-  return `<p>${dateLabel} 오늘의 주식 시장 마감 데이터를 공유 드립니다. 일별 상한가 종목, 하한가 종목, 등락률 상위 종목, 거래량 상위 종목을 매일 매일 업데이트 해 드립니다. 레버리지 및 인버스(ETF 및 ETN) 상품도 포함되어 있으니 투자에 참고 하시기 바라며 아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.</p>
+  // Build data-driven intro from today's actual numbers
+  const allLimitUp = SECTION_LABELS.flatMap(l => bySection[l].limitUpList);
+  const allLimitDown = SECTION_LABELS.flatMap(l => bySection[l].limitDownList);
+  const topRise = [...SECTION_LABELS.flatMap(l => bySection[l].changeList)]
+    .sort((a, b) => parseFloat(b.flu_rt) - parseFloat(a.flu_rt))[0];
+  const topDecline = [...SECTION_LABELS.flatMap(l => bySection[l].declineList)]
+    .sort((a, b) => parseFloat(a.flu_rt) - parseFloat(b.flu_rt))[0];
+
+  let introText = `${dateLabel} 주식시장 마감 기준, `;
+  if (allLimitUp.length > 0) {
+    introText += `상한가 종목은 ${allLimitUp.length}개 발생했습니다. `;
+  } else {
+    introText += `상한가 종목은 없었습니다. `;
+  }
+  if (allLimitDown.length > 0) {
+    introText += `하한가 종목은 ${allLimitDown.length}개였습니다. `;
+  } else {
+    introText += `하한가 종목도 없었습니다. `;
+  }
+  if (topRise) {
+    introText += `등락률 최상위 종목은 ${cleanName(topRise.stk_nm)}(+${topRise.flu_rt}%)였으며, `;
+  }
+  if (topDecline) {
+    introText += `하락률 상위는 ${cleanName(topDecline.stk_nm)}(${topDecline.flu_rt}%)였습니다. `;
+  }
+  introText += `아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.`;
+
+  return `<p>${introText}</p>
 ${sections}`;
 }
 
@@ -177,10 +211,11 @@ async function buildAiContent(env, bySection, dateLabel) {
 ${sectionData}
 
 이 데이터를 바탕으로 커뮤니티 게시판에 올릴 글을 HTML로 작성해줘. 반드시 지킬 것:
-- <p>, <h2>, <ul><li> 태그만 사용 (마크다운 금지, 코드블록 금지)
+- <p>, <h2 style="color:...">, <ul><li> 태그만 사용 (마크다운 금지, 코드블록 금지)
 - 매수/매도 추천, 투자 권유, "사세요", "좋습니다", "유망합니다" 같은 표현 절대 금지. 객관적 수치 설명만.
 - "오늘", "오늘의" 같은 표현 대신 정확한 날짜(${dateLabel})를 명시할 것.
 - 코스피, 코스닥, 레버리지·인버스 상품 세 그룹을 절대 합치지 말고, 각 그룹별로 "상한가 종목", "하한가 종목", "거래량 상위", "등락률 상위", "하락 상위" 소제목(h2)을 따로 만들어서 정리 (총 15개의 h2). 상한가/하한가 종목이 없으면 "상한가(또는 하한가)에 도달한 종목이 없습니다"라고 적을 것
+- 그룹별 h2 제목 색상을 반드시 구분할 것: 코스피는 <h2 style="color:${SECTION_COLORS["코스피"]}">, 코스닥은 <h2 style="color:${SECTION_COLORS["코스닥"]}">, 레버리지·인버스 상품은 <h2 style="color:${SECTION_COLORS["레버리지·인버스 상품"]}">로 지정
 - 글 맨 앞에 "이 글은 매수·매도 권유가 아니며 투자 판단의 책임은 본인에게 있다"는 안내문 포함
 - 출처를 밝히는 문구는 넣지 말 것
 - 다른 설명 없이 HTML 본문만 출력`;
