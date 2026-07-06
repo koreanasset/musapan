@@ -1452,7 +1452,7 @@ export default function App() {
 
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
-          <button onClick={() => setView({ page: "home", category: null, subcategory: null, postId: null })} className="flex items-center gap-2 shrink-0">
+          <button onClick={() => { setView(HOME_VIEW); loadPosts(); }} className="flex items-center gap-2 shrink-0">
             <img src="/logo.png" alt="코리안에셋" className="h-5 w-auto shrink-0" />
             <span className="text-2xl" style={{ fontFamily: selectedFont.family, fontWeight: selectedFont.weight, letterSpacing: selectedFont.ls }}>
               <span style={{ color: "#111827" }}>코리안</span><span style={{ color: "#fe0000" }}>에셋</span>
