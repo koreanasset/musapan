@@ -159,27 +159,37 @@ ${listRows(declineList, false)}
   // Build data-driven intro from today's actual numbers
   const allLimitUp = SECTION_LABELS.flatMap(l => bySection[l].limitUpList);
   const allLimitDown = SECTION_LABELS.flatMap(l => bySection[l].limitDownList);
-  const topRise = [...SECTION_LABELS.flatMap(l => bySection[l].changeList)]
-    .sort((a, b) => parseFloat(b.flu_rt) - parseFloat(a.flu_rt))[0];
-  const topDecline = [...SECTION_LABELS.flatMap(l => bySection[l].declineList)]
-    .sort((a, b) => parseFloat(a.flu_rt) - parseFloat(b.flu_rt))[0];
+
+  // flu_rt already carries its sign (e.g. "+27.47" or "-21.61") — don't add extra +
+  const fmtRate = r => `${r.flu_rt}%`;
+  const kospiTop1Rise    = bySection["코스피"].changeList[0];
+  const kospiTop1Decline = bySection["코스피"].declineList[0];
+  const kosdaqTop1Rise   = bySection["코스닥"].changeList[0];
+  const kosdaqTop1Decline= bySection["코스닥"].declineList[0];
+  const topVolume        = [...bySection["코스피"].volumeList, ...bySection["코스닥"].volumeList]
+    .sort((a, b) => Number(b.trde_qty) - Number(a.trde_qty))[0];
 
   let introText = `${dateLabel} 주식시장 마감 기준, `;
   if (allLimitUp.length > 0) {
-    introText += `상한가 종목은 ${allLimitUp.length}개 발생했습니다. `;
+    introText += `상한가 종목은 총 ${allLimitUp.length}개 발생했습니다. `;
   } else {
     introText += `상한가 종목은 없었습니다. `;
   }
   if (allLimitDown.length > 0) {
-    introText += `하한가 종목은 ${allLimitDown.length}개였습니다. `;
+    introText += `하한가 종목은 총 ${allLimitDown.length}개였습니다. `;
   } else {
     introText += `하한가 종목도 없었습니다. `;
   }
-  if (topRise) {
-    introText += `등락률 최상위 종목은 ${cleanName(topRise.stk_nm)}(+${topRise.flu_rt}%)였으며, `;
-  }
-  if (topDecline) {
-    introText += `하락률 상위는 ${cleanName(topDecline.stk_nm)}(${topDecline.flu_rt}%)였습니다. `;
+
+  const highlights = [];
+  if (kospiTop1Rise)    highlights.push(`코스피 상승률 1위 ${cleanName(kospiTop1Rise.stk_nm)}(${fmtRate(kospiTop1Rise)})`);
+  if (kospiTop1Decline) highlights.push(`하락률 1위 ${cleanName(kospiTop1Decline.stk_nm)}(${fmtRate(kospiTop1Decline)})`);
+  if (kosdaqTop1Rise)   highlights.push(`코스닥 상승률 1위 ${cleanName(kosdaqTop1Rise.stk_nm)}(${fmtRate(kosdaqTop1Rise)})`);
+  if (kosdaqTop1Decline)highlights.push(`하락률 1위 ${cleanName(kosdaqTop1Decline.stk_nm)}(${fmtRate(kosdaqTop1Decline)})`);
+  if (topVolume)        highlights.push(`거래량 1위 ${cleanName(topVolume.stk_nm)}(${Number(topVolume.trde_qty).toLocaleString()}주)`);
+
+  if (highlights.length > 0) {
+    introText += highlights.join(", ") + "였습니다. ";
   }
   introText += `아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.`;
 

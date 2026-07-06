@@ -63,7 +63,6 @@ function listRows(items) {
 function buildDataIntro(byCategory, dateLabel) {
   const activeCategories = CATEGORIES.filter(({ label }) => byCategory[label]?.length > 0);
   const total = activeCategories.reduce((s, { label }) => s + byCategory[label].length, 0);
-  const categoryNames = activeCategories.map(({ label }) => label).join(", ");
 
   // Highlight high-severity categories if present
   const severe = ["횡령ㆍ배임", "부도ㆍ은행거래정지ㆍ파산", "상장폐지", "거래정지"]
@@ -72,10 +71,28 @@ function buildDataIntro(byCategory, dateLabel) {
   let text = `${dateLabel} 기준 코스피·코스닥 주요 공시 총 ${total}건이 접수됐습니다.`;
   if (severe.length > 0) {
     text += ` 오늘은 특히 ${severe.join(", ")} 관련 공시가 포함되어 있어 보유 종목 여부를 반드시 확인해 보시기 바랍니다.`;
-  } else {
-    text += ` 오늘 다루는 공시 유형은 ${categoryNames}입니다.`;
   }
   return `<p>${text}</p>`;
+}
+
+function buildHighlightPara(byCategory) {
+  // Priority order: severe first, then others. Pick up to 2 companies per category, max 6 highlights total.
+  const priorityOrder = [
+    "횡령ㆍ배임", "부도ㆍ은행거래정지ㆍ파산", "상장폐지", "거래정지", "관리종목 지정",
+    "유상증자ㆍ무상증자결정", "회사합병ㆍ분할결정", "단일판매ㆍ공급계약체결",
+    "타법인 주식 취득", "최대주주 변경", "전환사채권발행결정", "자기주식 취득ㆍ처분", "자본감소(감자)", "소송 등의 제기", "임상시험",
+  ];
+
+  const highlights = [];
+  for (const label of priorityOrder) {
+    if (!byCategory[label]?.length) continue;
+    const companies = byCategory[label].slice(0, 2).map(d => d.corp_name);
+    highlights.push(`${companies.join("·")}(${label})`);
+    if (highlights.length >= 6) break;
+  }
+
+  if (highlights.length === 0) return "";
+  return `<p>오늘 주요 공시로는 ${highlights.join(", ")} 등이 있습니다.</p>`;
 }
 
 function buildTemplateContent(byCategory, dateLabel) {
@@ -85,7 +102,7 @@ function buildTemplateContent(byCategory, dateLabel) {
     .join("\n");
 
   return `${buildDataIntro(byCategory, dateLabel)}
-<p>알려 드리는 주식시장 주요 공시는 거래정지, 상장폐지 관련, 파산 공시, 계약체결, 전환사채발행, 유상증자, 무상증자, 회사 합병 및 분할, 타법인 주식 취득, 최대주주 변경, 감자, 자기주식 취득 및 처분등의 공시 입니다.</p>
+${buildHighlightPara(byCategory)}
 <p>투자에 있어 매우 중요한 공시들만 따로 정리해서 매일 매일 업데이트 해드리니 투자에 참고 하시기 바라며, 아래 내용은 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>
 ${sections}`;
 }
