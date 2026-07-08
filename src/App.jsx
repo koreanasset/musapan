@@ -260,7 +260,9 @@ function Sidebar({ currentUser, openAuth, profiles }) {
       .channel("google_trends_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "google_trends" }, () => loadTrends())
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    // Polling fallback: refresh every 5 minutes in case realtime misses an update
+    const timer = setInterval(loadTrends, 5 * 60 * 1000);
+    return () => { supabase.removeChannel(channel); clearInterval(timer); };
   }, [loadTrends]);
 
   return (
