@@ -2241,9 +2241,45 @@ export default function App() {
             </div>
 
             {legalModal === "about" && (
-              <div className="text-sm text-gray-600 leading-relaxed space-y-3">
-                <p>코리안에셋은 주식, 부동산, 보험, 금융 정보를 함께 나누는 커뮤니티입니다.</p>
-                <p>회원분들이 자유롭게 정보를 공유하고 소통할 수 있는 공간을 만드는 것을 목표로 운영하고 있습니다.</p>
+              <div className="text-sm text-gray-600 leading-relaxed space-y-5">
+                <div>
+                  <p className="font-bold text-gray-800 mb-2">이 사이트는 어떤 곳인가요</p>
+                  <p>코리안에셋(KoreanAsset)은 주식투자, 부동산, 보험, 금융 정보를 한곳에서 나눌 수 있는 재테크 커뮤니티입니다. 정보가 여기저기 흩어져 있어서 찾기 불편하다는 생각에서 직접 만들기 시작했어요. 거창한 플랫폼이 아니라, 실제 경험과 정보를 솔직하게 나누는 공간을 목표로 운영하고 있습니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-2">운영자 소개</p>
+                  <p>현직 보험설계사로 일하면서 고객들의 보험 상담과 청구 과정을 직접 다뤄왔습니다. 보험뿐 아니라 주식·부동산 분야에도 관심이 많아, 재테크 전반을 다루는 커뮤니티를 직접 개발·운영하고 있습니다. 개발자 출신이 아니라 보험 일을 하면서 독학으로 사이트를 만들었고, 그 과정도 자유게시판에 1인개발일지로 기록 중입니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-2">보유 자격</p>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">자격명</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">발급 기관</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td className="border border-gray-200 px-3 py-2">생명보험 판매자격</td><td className="border border-gray-200 px-3 py-2">생명보험협회</td></tr>
+                      <tr><td className="border border-gray-200 px-3 py-2">손해보험 판매자격</td><td className="border border-gray-200 px-3 py-2">손해보험협회</td></tr>
+                      <tr><td className="border border-gray-200 px-3 py-2">제3보험 판매자격</td><td className="border border-gray-200 px-3 py-2">금융감독원 인가</td></tr>
+                      <tr><td className="border border-gray-200 px-3 py-2">증권투자권유대행인</td><td className="border border-gray-200 px-3 py-2">금융투자협회</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-2">콘텐츠 운영 원칙</p>
+                  <p className="font-medium text-gray-700 mb-1">보험 관련 콘텐츠</p>
+                  <p className="mb-3">현직 설계사로서 실제 상담과 청구 과정에서 쌓은 경험을 바탕으로 작성합니다. 특정 보험사나 상품을 권유하는 목적이 아닌, 가입자 입장에서 알아두면 도움이 되는 정보를 정리하는 것을 원칙으로 합니다.</p>
+                  <p className="font-medium text-gray-700 mb-1">투자 관련 콘텐츠</p>
+                  <p className="mb-3">주식·부동산 관련 정보는 투자 권유가 아닌 정보 제공을 목적으로 합니다. 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.</p>
+                  <p className="font-medium text-gray-700 mb-1">면책 안내</p>
+                  <p>이 사이트의 모든 콘텐츠는 정보 제공을 목적으로 하며, 전문적인 법률·세무·금융 자문을 대체하지 않습니다. 중요한 금융 의사결정은 반드시 해당 분야 전문가와 직접 상담하시기 바랍니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">문의</p>
+                  <p>사이트 운영 관련 문의는 1:1문의 게시판을 이용해 주세요.</p>
+                </div>
               </div>
             )}
 
