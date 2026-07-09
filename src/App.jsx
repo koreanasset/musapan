@@ -2248,7 +2248,10 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-2">운영자 소개</p>
-                  <p>현직 보험설계사로 일하면서 고객들의 보험 상담과 청구 과정을 직접 다뤄왔습니다. 보험뿐 아니라 주식·부동산 분야에도 관심이 많아, 재테크 전반을 다루는 커뮤니티를 직접 개발·운영하고 있습니다. 개발자 출신이 아니라 보험 일을 하면서 독학으로 사이트를 만들었고, 그 과정도 자유게시판에 1인개발일지로 기록 중입니다.</p>
+                  <div className="flex items-start gap-4">
+                    <img src="/about-profile-square.jpg" alt="코리안에셋 운영자" className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-200" />
+                    <p>현직 보험설계사로 일하면서 고객들의 보험 상담과 청구 과정을 직접 다뤄왔습니다. 보험뿐 아니라 주식·부동산 분야에도 관심이 많아, 재테크 전반을 다루는 커뮤니티를 직접 개발·운영하고 있습니다. 개발자 출신이 아니라 보험 일을 하면서 독학으로 사이트를 만들었고, 그 과정도 자유게시판에 1인개발일지로 기록 중입니다.</p>
+                  </div>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-2">보유 자격</p>
