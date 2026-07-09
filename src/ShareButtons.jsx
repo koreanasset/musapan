@@ -41,16 +41,6 @@ function FacebookIcon({ size }) {
   );
 }
 
-function InstagramIcon({ size }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 function NaverIcon({ size }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
@@ -110,33 +100,6 @@ export default function ShareButtons({ url, title, thumbnail }) {
   function shareNaverCafe() {
     openShareWindow(`https://share.naver.com/web/shareView?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`);
   }
-  async function shareInstagram() {
-    // Instagram has no public web share URL for arbitrary links. On mobile,
-    // hand off to the OS share sheet (Direct/Stories show up there); on
-    // desktop, fall back to copy + tell the user to paste it in the app.
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-      } catch {
-        // user cancelled the native share sheet — nothing to do
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const el = document.createElement("textarea");
-      el.value = url;
-      el.style.position = "fixed";
-      el.style.opacity = "0";
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    alert("인스타그램은 웹에서 바로 공유할 수 없어요. 링크가 복사되었으니 인스타그램 앱의 스토리나 DM에 붙여넣어 주세요.");
-  }
-
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(url);
@@ -160,8 +123,7 @@ export default function ShareButtons({ url, title, thumbnail }) {
     { key: "navercafe", label: "네이버카페", onClick: shareNaverCafe, bg: "#03C75A", fg: "#fff", Icon: CafeIcon },
     { key: "band", label: "밴드", onClick: shareBand, bg: "#00C73C", fg: "#fff", Icon: BandIcon },
     { key: "x", label: "X", onClick: shareX, bg: "#000000", fg: "#fff", Icon: XIcon },
-    { key: "facebook", label: "페이스북", onClick: shareFacebook, bg: "#1877F2", fg: "#fff", Icon: FacebookIcon },
-    { key: "instagram", label: "인스타그램", onClick: shareInstagram, bg: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)", fg: "#fff", Icon: InstagramIcon }
+    { key: "facebook", label: "페이스북", onClick: shareFacebook, bg: "#1877F2", fg: "#fff", Icon: FacebookIcon }
   ];
 
   return (
