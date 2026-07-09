@@ -3,7 +3,8 @@ import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell
 import { supabase } from "./lib/supabaseClient";
 import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
-import { OrganizationSchema, ProfilePageSchema, ArticleSchema } from "./SchemaMarkup";
+import { OrganizationSchema, ProfilePageSchema, ArticleSchema, SITE_URL } from "./SchemaMarkup";
+import ShareButtons from "./ShareButtons";
 
 // hidden: category has no content yet, so it's kept out of nav/sitemap/routing
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
@@ -1888,6 +1889,11 @@ export default function App() {
                   {currentPost.thumbnail && (
                     <img src={currentPost.thumbnail} alt="" className="w-full max-w-xs rounded-lg border border-gray-200 mb-4 mx-auto block" />
                   )}
+                  <ShareButtons
+                    url={`${SITE_URL}${buildPath(view)}`}
+                    title={currentPost.title}
+                    thumbnail={currentPost.thumbnail}
+                  />
                   {(() => {
                     const isOwnPost = currentUser && currentPost.author === currentUser.nickname;
                     const alreadyLiked = currentUser && currentPost.likedBy.includes(currentUser.id);

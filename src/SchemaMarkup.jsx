@@ -2,7 +2,7 @@
 // All values here are real site data — do not fill in placeholders
 // (fake address, fake founding date, etc.) that Google can flag as inaccurate.
 
-const SITE_URL = "https://koreanasset.com";
+export const SITE_URL = "https://koreanasset.com";
 
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
