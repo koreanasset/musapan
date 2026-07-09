@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link as LinkIcon } from "lucide-react";
+import { Link as LinkIcon, Coffee as CafeIcon } from "lucide-react";
 
 function openShareWindow(shareUrl) {
   window.open(shareUrl, "_blank", "width=600,height=600,noopener,noreferrer");
@@ -37,6 +37,16 @@ function FacebookIcon({ size }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
       <path d="M14 8.5h2V5.5h-2c-2.21 0-4 1.79-4 4V11H8v3h2v7h3v-7h2.5l.5-3H13V9.5c0-.55.45-1 1-1z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ size }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -100,6 +110,32 @@ export default function ShareButtons({ url, title, thumbnail }) {
   function shareNaverCafe() {
     openShareWindow(`https://share.naver.com/web/shareView?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`);
   }
+  async function shareInstagram() {
+    // Instagram has no public web share URL for arbitrary links. On mobile,
+    // hand off to the OS share sheet (Direct/Stories show up there); on
+    // desktop, fall back to copy + tell the user to paste it in the app.
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch {
+        // user cancelled the native share sheet — nothing to do
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    alert("인스타그램은 웹에서 바로 공유할 수 없어요. 링크가 복사되었으니 인스타그램 앱의 스토리나 DM에 붙여넣어 주세요.");
+  }
 
   async function copyLink() {
     try {
@@ -121,10 +157,11 @@ export default function ShareButtons({ url, title, thumbnail }) {
   const buttons = [
     { key: "kakao", label: "카카오톡", onClick: shareKakao, bg: "#FEE500", fg: "#3C1E1E", Icon: KakaoIcon },
     { key: "naverblog", label: "네이버블로그", onClick: shareNaverBlog, bg: "#03C75A", fg: "#fff", Icon: NaverIcon },
-    { key: "navercafe", label: "네이버카페", onClick: shareNaverCafe, bg: "#03C75A", fg: "#fff", Icon: NaverIcon },
+    { key: "navercafe", label: "네이버카페", onClick: shareNaverCafe, bg: "#03C75A", fg: "#fff", Icon: CafeIcon },
     { key: "band", label: "밴드", onClick: shareBand, bg: "#00C73C", fg: "#fff", Icon: BandIcon },
     { key: "x", label: "X", onClick: shareX, bg: "#000000", fg: "#fff", Icon: XIcon },
-    { key: "facebook", label: "페이스북", onClick: shareFacebook, bg: "#1877F2", fg: "#fff", Icon: FacebookIcon }
+    { key: "facebook", label: "페이스북", onClick: shareFacebook, bg: "#1877F2", fg: "#fff", Icon: FacebookIcon },
+    { key: "instagram", label: "인스타그램", onClick: shareInstagram, bg: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)", fg: "#fff", Icon: InstagramIcon }
   ];
 
   return (
@@ -137,7 +174,7 @@ export default function ShareButtons({ url, title, thumbnail }) {
           title={label}
           aria-label={label}
           className="w-9 h-9 rounded-full flex items-center justify-center hover:opacity-80 transition shrink-0"
-          style={{ backgroundColor: bg, color: fg }}
+          style={{ background: bg, color: fg }}
         >
           <Icon size={16} />
         </button>
