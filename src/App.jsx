@@ -3,6 +3,7 @@ import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell
 import { supabase } from "./lib/supabaseClient";
 import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
+import { OrganizationSchema, ProfilePageSchema, ArticleSchema } from "./SchemaMarkup";
 
 // hidden: category has no content yet, so it's kept out of nav/sitemap/routing
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
@@ -1424,6 +1425,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 text-sm">
+      <OrganizationSchema />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@900&display=swap');
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
@@ -1856,6 +1858,11 @@ export default function App() {
               </div>
             ) : (
               <>
+                <ArticleSchema
+                  post={currentPost}
+                  path={buildPath(view)}
+                  categoryName={CATEGORIES.find(c => c.id === currentPost.category)?.name}
+                />
                 <div className="bg-white rounded-lg border border-gray-200 p-5">
                   <span className="text-sm font-bold px-2.5 py-1 rounded" style={{
                     color: CATEGORIES.find(c => c.id === currentPost.category).color,
@@ -2242,6 +2249,7 @@ export default function App() {
 
             {legalModal === "about" && (
               <div className="text-sm text-gray-600 leading-relaxed space-y-5">
+                <ProfilePageSchema />
                 <div>
                   <p className="font-bold text-gray-800 mb-2">이 사이트는 어떤 곳인가요</p>
                   <p>코리안에셋(KoreanAsset)은 주식투자, 부동산, 보험, 금융 정보를 한곳에서 나눌 수 있는 재테크 커뮤니티입니다. 정보가 여기저기 흩어져 있어서 찾기 불편하다는 생각에서 직접 만들기 시작했어요. 거창한 플랫폼이 아니라, 실제 경험과 정보를 솔직하게 나누는 공간을 목표로 운영하고 있습니다.</p>
