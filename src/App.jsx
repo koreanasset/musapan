@@ -2312,7 +2312,7 @@ export default function App() {
 
             {legalModal === "terms" && (
               <div className="text-sm text-gray-600 leading-relaxed space-y-4">
-                <p className="text-xs text-gray-400">시행일: 2026년 7월 1일</p>
+                <p className="text-xs text-gray-400">시행일: 2026년 6월 21일</p>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">제1조 (목적)</p>
                   <p>이 약관은 코리안에셋(이하 "사이트")이 제공하는 서비스의 이용 조건 및 절차, 회원과 사이트 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
