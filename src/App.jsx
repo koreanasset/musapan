@@ -2583,12 +2583,23 @@ export default function App() {
               <Avatar nickname={profileView} size={64} avatarUrl={findUser(profileView)?.avatar_url} />
             </div>
             <h3 className="font-bold text-lg mb-1">{profileView}</h3>
-            <p className="text-sm text-gray-400 mb-4 flex items-center justify-center gap-1">
+            <p className={`text-sm text-gray-400 flex items-center justify-center gap-1 ${profiles.find(u => u.nickname === profileView)?.role === "master" ? "mb-1" : "mb-4"}`}>
               {(() => {
                 const u = profiles.find(u => u.nickname === profileView);
                 return (<><span>{rankEmoji(u)}</span><span>{u ? pointLabel(u) : "일반 회원"}</span></>);
               })()}
             </p>
+            {profiles.find(u => u.nickname === profileView)?.role === "master" && (
+              <p className="text-sm mb-3">
+                <a
+                  href="/about"
+                  onClick={e => { e.preventDefault(); setProfileView(null); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "about" }); }}
+                  className="text-indigo-500 hover:underline"
+                >
+                  운영자 소개 보기
+                </a>
+              </p>
+            )}
             <div className="flex gap-2 justify-center">
               {currentUser && currentUser.nickname !== profileView && (
                 <>
