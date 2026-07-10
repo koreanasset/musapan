@@ -1497,6 +1497,17 @@ export default function App() {
             )}
           </div>
         </div>
+        <div className="md:hidden px-4 pb-3">
+          <div className="relative">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="검색"
+              className="w-full pl-4 pr-10 py-2.5 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-indigo-300 text-sm"
+            />
+            <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
         <nav className="border-t border-gray-100 bg-gray-50 relative z-30 overflow-visible">
           <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto overflow-y-visible">
             {CATEGORIES.filter(c => !c.hidden).map(c => {
