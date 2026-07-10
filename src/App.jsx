@@ -2384,6 +2384,22 @@ export default function App() {
                   <p className="font-bold text-gray-800 mb-1">5. 회원 탈퇴 및 개인정보 파기 절차</p>
                   <p>회원은 로그인 후 "내정보" 화면 하단의 "회원 탈퇴" 버튼을 통해 즉시 탈퇴를 신청할 수 있습니다. 탈퇴 신청과 동시에 회원의 계정 및 개인정보, 작성한 게시물·댓글·쪽지·알림·문의 내역이 데이터베이스에서 영구적으로 삭제되며, 이후 복구가 불가능합니다.</p>
                 </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">6. 쿠키 및 유사기술의 사용</p>
+                  <p>코리안에셋은 광고 게재를 위해 쿠키(cookie)를 사용합니다. 쿠키는 웹사이트를 운영하는 데 이용되는 서버가 이용자의 브라우저에 보내는 소량의 정보이며, 이용자 컴퓨터의 하드디스크에 저장됩니다. 이용자는 웹브라우저 설정을 통해 쿠키 저장을 거부하거나 삭제할 수 있으며, 이 경우 일부 서비스 이용에 제한이 있을 수 있습니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">7. 제3자 서비스 및 광고 쿠키</p>
+                  <p>코리안에셋은 다음과 같은 제3자 서비스를 통해 광고를 제공받고 있습니다.</p>
+                  <ul className="list-disc list-inside mt-1">
+                    <li>Google AdSense (광고 게재 및 광고 개인화)</li>
+                  </ul>
+                  <p className="mt-1">위 서비스는 자체 쿠키를 통해 이용자의 방문 정보를 수집할 수 있으며, 해당 정보의 처리는 서비스 제공자(Google)의 개인정보처리방침을 따릅니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-1">8. 광고 개인화 설정 안내</p>
+                  <p>이용자는 Google 광고 설정 페이지(<a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">adssettings.google.com</a>)에서 맞춤 광고 수신을 거부할 수 있습니다.</p>
+                </div>
               </div>
             )}
 
