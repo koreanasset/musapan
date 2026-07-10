@@ -1886,6 +1886,16 @@ export default function App() {
                     className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
+                  <p className="text-xs text-gray-400 pt-3 border-t border-gray-100">
+                    글쓴이: 현직 보험설계사 (생명보험·손해보험·제3보험 판매자격, 증권투자권유대행인) ·{" "}
+                    <a
+                      href="/about"
+                      onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "about" }); }}
+                      className="text-indigo-500 hover:underline"
+                    >
+                      운영자 소개 더보기
+                    </a>
+                  </p>
                   {currentPost.thumbnail && (
                     <img src={currentPost.thumbnail} alt="" className="w-full max-w-xs rounded-lg border border-gray-200 mb-4 mx-auto block" />
                   )}
