@@ -97,7 +97,7 @@ const BOARD_PERMISSIONS = {
   "보험대란알림": { write: "master", list: "member", detail: "member" },
   "Hey보험딜러 비교견적내줘": { write: "member", list: "guest", detail: "owner" },
   "내보험 진단하기": { write: "member", list: "guest", detail: "owner" },
-  "오늘의 특징주": { write: "master", list: "guest", detail: "member" },
+  "오늘의 특징주": { write: "master", list: "guest", detail: "guest" },
   "칼럼": { write: "master", list: "guest", detail: "guest" },
 };
 
