@@ -98,6 +98,71 @@ ${thumbnail}<strong>${name}</strong> (유찰 ${item.usbdNft}회)
 <hr style="border:none;border-top:2px solid #9ca3af;margin:8px 0;">`;
 }
 
+// Same building, multiple units (e.g. an entire office floor auctioned unit
+// by unit) show up as near-duplicate entries that only differ in the unit
+// number. Stripping digits normalizes "...213호..." and "...212호..." to the
+// same string, so combined with location + bid period it's a safe grouping
+// key — a false match would require an identical address-minus-digits AND
+// identical 시/구/동 AND identical exact bid start/end datetime by coincidence.
+function buildingKey(item) {
+  const nameShape = (item.onbidCltrNm || item.prptNm || "").replace(/[0-9]/g, "");
+  return [nameShape, item.lctnSdnm, item.lctnSggnm, item.lctnEmdNm, item.cltrBidBgngDt, item.cltrBidEndDt].join("|");
+}
+
+function groupByBuilding(items) {
+  const groups = new Map();
+  for (const item of items) {
+    const key = buildingKey(item);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  return [...groups.values()];
+}
+
+function groupTableBlock(group) {
+  const first = group[0];
+  const name = first.onbidCltrNm || first.prptNm || "물건명 미상";
+  const location = [first.lctnSdnm, first.lctnSggnm, first.lctnEmdNm].filter(Boolean).join(" ") || "-";
+  const thumbnail = first.thnlImgUrlAdr ? `<img src="${first.thnlImgUrlAdr}" alt="${name}" style="max-width:220px;display:block;margin-bottom:8px;">` : "";
+  const bidPeriod = `${fmtDt(first.cltrBidBgngDt)} ~ ${fmtDt(first.cltrBidEndDt)}`;
+
+  const rows = group.map(item => {
+    const lowstBidPrc = /^\d+$/.test(String(item.lowstBidPrcIndctCont)) ? fmtAmt(item.lowstBidPrcIndctCont) : (item.lowstBidPrcIndctCont || "-");
+    const itemName = item.onbidCltrNm || item.prptNm || "물건명 미상";
+    return `<tr>
+<td style="padding:4px 8px;border:1px solid #e5e7eb;">${itemName}</td>
+<td style="padding:4px 8px;border:1px solid #e5e7eb;">유찰 ${item.usbdNft}회</td>
+<td style="padding:4px 8px;border:1px solid #e5e7eb;">${fmtAmt(item.apslEvlAmt)}</td>
+<td style="padding:4px 8px;border:1px solid #e5e7eb;">${lowstBidPrc}</td>
+<td style="padding:4px 8px;border:1px solid #e5e7eb;">${item.cltrMngNo}</td>
+</tr>`;
+  }).join("\n");
+
+  return `<div style="margin:16px 0;">
+${thumbnail}<strong>${name} 외 ${group.length - 1}건</strong> — 같은 건물의 호실 ${group.length}개가 함께 공매 진행 중입니다.
+<br>소재지: ${location} | 입찰기간: ${bidPeriod}
+<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.85em;">
+<thead><tr>
+<th style="padding:4px 8px;border:1px solid #e5e7eb;text-align:left;">물건명</th>
+<th style="padding:4px 8px;border:1px solid #e5e7eb;text-align:left;">유찰횟수</th>
+<th style="padding:4px 8px;border:1px solid #e5e7eb;text-align:left;">감정가</th>
+<th style="padding:4px 8px;border:1px solid #e5e7eb;text-align:left;">최저입찰가</th>
+<th style="padding:4px 8px;border:1px solid #e5e7eb;text-align:left;">물건관리번호</th>
+</tr></thead>
+<tbody>
+${rows}
+</tbody>
+</table>
+</div>
+<hr style="border:none;border-top:2px solid #9ca3af;margin:8px 0;">`;
+}
+
+function renderItems(items) {
+  return groupByBuilding(items)
+    .map(group => group.length > 1 ? groupTableBlock(group) : listItem(group[0]))
+    .join("\n");
+}
+
 function buildDataIntro(byKind, dateLabel) {
   const kindStats = KINDS
     .map(({ key, label }) => ({ label, items: byKind[key] || [] }))
@@ -137,7 +202,7 @@ function buildContent(byKind, dateLabel) {
 
   const sections = KINDS
     .filter(({ key }) => byKind[key] && byKind[key].length > 0)
-    .map(({ key, label }) => `<h2>${label} (유찰 2회 이상, ${byKind[key].length}건)</h2>\n${byKind[key].map(listItem).join("\n")}`)
+    .map(({ key, label }) => `<h2>${label} (유찰 2회 이상, ${byKind[key].length}건)</h2>\n${renderItems(byKind[key])}`)
     .join("\n");
 
   return `${intro}\n${sections}`;
