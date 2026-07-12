@@ -11,7 +11,10 @@ import ShareButtons from "./ShareButtons";
 // presentational — permissions/config stay intact, just toggle these off when
 // ready to reveal.
 const CATEGORIES = [
-  { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"] },
+  // hidden here too (temporarily): AdSense re-review is in progress and the
+  // nav feels crowded with 5 items for a site this size. Real content, not
+  // an empty-content issue — just un-hide once approved.
+  { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"], hidden: true },
   { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
   { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"], hiddenSubs: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기"] },
@@ -71,7 +74,9 @@ function parseViewFromPath(pathname) {
     const postId = Number(parts[1]);
     if (!Number.isNaN(postId)) return { page: "detail", category: null, subcategory: null, postId };
   }
-  if (parts[0] === "hot") return { page: "hot", category: "hot", subcategory: null, postId: null };
+  if (parts[0] === "hot" && !CATEGORIES.find(c => c.id === "hot").hidden) {
+    return { page: "hot", category: "hot", subcategory: null, postId: null };
+  }
   if (parts[0] === "point" && !CATEGORIES.find(c => c.id === "point").hidden) {
     return { page: "point", category: "point", subcategory: null, postId: null };
   }

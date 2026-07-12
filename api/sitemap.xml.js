@@ -5,7 +5,10 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 // of the crawlable surface area until they're ready to launch (toggle
 // CATEGORIES hidden flag in src/App.jsx when that day comes, and add them
 // back here).
-const STATIC_PATHS = ["/", "/hot", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
+// /hot is also temporarily excluded (nav decluttering during AdSense
+// re-review, not a content issue) — add it back once the "hot" category is
+// un-hidden in src/App.jsx.
+const STATIC_PATHS = ["/", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
