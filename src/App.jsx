@@ -10,6 +10,10 @@ import ShareButtons from "./ShareButtons";
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
 // presentational — permissions/config stay intact, just toggle these off when
 // ready to reveal.
+// SHOW_TRENDING_WIDGET: temporarily off during AdSense re-review (nav/homepage
+// decluttering, not a content issue) — flip back to true once approved.
+const SHOW_TRENDING_WIDGET = false;
+
 const CATEGORIES = [
   // hidden here too (temporarily): AdSense re-review is in progress and the
   // nav feels crowded with 5 items for a site this size. Real content, not
@@ -1617,6 +1621,7 @@ export default function App() {
           <div className="flex flex-col lg:flex-row gap-5">
             <div className="flex-1 min-w-0">
                   <div className="space-y-5">
+                    {SHOW_TRENDING_WIDGET && (
                     <section className="bg-white rounded-lg border border-gray-200 p-4">
                       <h2 className="flex items-center gap-1.5 font-bold text-base mb-3">
                         <Flame size={18} className="text-red-500" /> 떡상폭발 게시물
@@ -1637,6 +1642,7 @@ export default function App() {
                         })}
                       </div>
                     </section>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {BOARD_CATEGORIES.map(c => {
