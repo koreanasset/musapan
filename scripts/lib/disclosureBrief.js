@@ -1,4 +1,5 @@
 import { generateThumbnail, uploadThumbnail, insertPost } from "./thumbnail.js";
+import { pickVariant } from "./textVariants.js";
 
 const DART_BASE = "https://opendart.fss.or.kr/api";
 
@@ -60,6 +61,19 @@ function listRows(items) {
     .join("\n");
 }
 
+const OPENING_VARIANTS = [
+  (dateLabel, total) => `${dateLabel} 기준 코스피·코스닥 주요 공시 총 ${total}건이 접수됐습니다.`,
+  (dateLabel, total) => `${dateLabel}에 접수된 코스피·코스닥 주요 공시는 총 ${total}건입니다.`,
+  (dateLabel, total) => `오늘(${dateLabel}) 코스피·코스닥에서 총 ${total}건의 주요 공시가 나왔습니다.`,
+  (dateLabel, total) => `${dateLabel} 공시브리핑 — 코스피·코스닥 주요 공시 ${total}건을 정리해드립니다.`,
+];
+
+const SEVERE_VARIANTS = [
+  severe => ` 오늘은 특히 ${severe} 관련 공시가 포함되어 있어 보유 종목 여부를 반드시 확인해 보시기 바랍니다.`,
+  severe => ` 특히 ${severe} 관련 공시가 있으니, 보유 중인 종목이라면 꼭 내용을 확인해 보시기 바랍니다.`,
+  severe => ` ${severe} 관련 공시도 포함되어 있어, 관련 종목을 보유하고 계시다면 눈여겨보시길 권해드립니다.`,
+];
+
 function buildDataIntro(byCategory, dateLabel) {
   const activeCategories = CATEGORIES.filter(({ label }) => byCategory[label]?.length > 0);
   const total = activeCategories.reduce((s, { label }) => s + byCategory[label].length, 0);
@@ -68,9 +82,9 @@ function buildDataIntro(byCategory, dateLabel) {
   const severe = ["횡령ㆍ배임", "부도ㆍ은행거래정지ㆍ파산", "상장폐지", "거래정지"]
     .filter(l => byCategory[l]?.length > 0);
 
-  let text = `${dateLabel} 기준 코스피·코스닥 주요 공시 총 ${total}건이 접수됐습니다.`;
+  let text = pickVariant(OPENING_VARIANTS, dateLabel)(dateLabel, total);
   if (severe.length > 0) {
-    text += ` 오늘은 특히 ${severe.join(", ")} 관련 공시가 포함되어 있어 보유 종목 여부를 반드시 확인해 보시기 바랍니다.`;
+    text += pickVariant(SEVERE_VARIANTS, dateLabel + "severe")(severe.join(", "));
   }
   return `<p>${text}</p>`;
 }
@@ -95,6 +109,12 @@ function buildHighlightPara(byCategory) {
   return `<p>오늘 주요 공시로는 ${highlights.join(", ")} 등이 있습니다.</p>`;
 }
 
+const DISCLAIMER_VARIANTS = [
+  "<p>투자에 있어 매우 중요한 공시들만 따로 정리해서 매일 매일 업데이트 해드리니 투자에 참고 하시기 바라며, 아래 내용은 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>",
+  "<p>매수·매도를 권유하는 목적이 아니라, 투자 판단에 참고하실 수 있도록 중요 공시만 추려서 매일 정리해드리는 내용입니다. 자세한 내용은 [원문보기] 링크에서 직접 확인해보시기 바랍니다.</p>",
+  "<p>아래 내용은 투자 권유가 아닌 공시 사실 전달을 목적으로 합니다. 투자 판단에 중요할 만한 공시만 골라 매일 업데이트하고 있으니, 자세한 사항은 [원문보기] 링크로 확인하시길 권장드립니다.</p>",
+];
+
 function buildTemplateContent(byCategory, dateLabel) {
   const sections = CATEGORIES
     .filter(({ label }) => byCategory[label] && byCategory[label].length > 0)
@@ -103,7 +123,7 @@ function buildTemplateContent(byCategory, dateLabel) {
 
   return `${buildDataIntro(byCategory, dateLabel)}
 ${buildHighlightPara(byCategory)}
-<p>투자에 있어 매우 중요한 공시들만 따로 정리해서 매일 매일 업데이트 해드리니 투자에 참고 하시기 바라며, 아래 내용은 매수·매도를 권유하는 의견이 아닙니다. 자세한 내용은 [원문보기] 링크로 직접 확인하시길 권장드립니다.</p>
+${pickVariant(DISCLAIMER_VARIANTS, dateLabel + "disclaimer")}
 ${sections}`;
 }
 

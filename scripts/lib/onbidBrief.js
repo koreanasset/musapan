@@ -1,4 +1,5 @@
 import { generateThumbnail, uploadThumbnail, insertPost } from "./thumbnail.js";
+import { pickVariant } from "./textVariants.js";
 
 const ONBID_BASE = "https://apis.data.go.kr/B010003";
 
@@ -163,6 +164,31 @@ function renderItems(items) {
     .join("\n");
 }
 
+const OPENING_VARIANTS = [
+  (dateLabel, total, kindSummary) => `${dateLabel} 기준으로 오늘 처음 소개되는 공매물건은 총 ${total}건(${kindSummary})입니다.`,
+  (dateLabel, total, kindSummary) => `${dateLabel}에 새로 등록된 공매물건은 ${kindSummary}, 총 ${total}건입니다.`,
+  (dateLabel, total, kindSummary) => `오늘(${dateLabel}) 기준 신규 공매물건 ${total}건(${kindSummary})을 정리해드립니다.`,
+  (dateLabel, total, kindSummary) => `${dateLabel} 공매정보 업데이트 — 오늘 새로 등록된 물건은 총 ${total}건(${kindSummary})입니다.`,
+];
+
+const REGION_VARIANTS = [
+  regions => ` 지역별로는 ${regions} 소재 물건이 가장 많이 포함됐으며,`,
+  regions => ` ${regions} 지역 물건 비중이 특히 높았고,`,
+  regions => ` 이 중 ${regions} 소재 물건이 다수를 차지했으며,`,
+];
+
+const FAILED_COUNT_VARIANTS = [
+  maxFailed => ` 유찰 횟수는 최대 ${maxFailed}회에 달하는 물건도 있습니다.`,
+  maxFailed => ` 여러 차례(최대 ${maxFailed}회) 유찰된 물건도 눈에 띕니다.`,
+  maxFailed => ` 유찰 ${maxFailed}회를 기록한 물건도 포함되어 있습니다.`,
+];
+
+const CLOSING_INSIGHT_VARIANTS = [
+  " 유찰이 반복될수록 최저입찰가가 낮아지는 경향이 있어 실수요자·투자자 모두 눈여겨볼 만한 물건들입니다.",
+  " 반복 유찰된 물건일수록 최저입찰가가 감정가 대비 크게 낮아지는 편이라, 실수요 목적이든 투자 목적이든 확인해볼 가치가 있습니다.",
+  " 유찰 횟수가 쌓일수록 입찰가가 내려가는 구조이니, 조건이 맞는 물건이 있는지 살펴보시기 바랍니다.",
+];
+
 function buildDataIntro(byKind, dateLabel) {
   const kindStats = KINDS
     .map(({ key, label }) => ({ label, items: byKind[key] || [] }))
@@ -185,20 +211,28 @@ function buildDataIntro(byKind, dateLabel) {
     .slice(0, 2)
     .map(([name]) => name);
 
-  let text = `${dateLabel} 기준으로 오늘 처음 소개되는 공매물건은 총 ${total}건(${kindSummary})입니다.`;
+  let text = pickVariant(OPENING_VARIANTS, dateLabel)(dateLabel, total, kindSummary);
   if (topRegions.length > 0) {
-    text += ` 지역별로는 ${topRegions.join("·")} 소재 물건이 가장 많이 포함됐으며,`;
+    text += pickVariant(REGION_VARIANTS, dateLabel + "region")(topRegions.join("·"));
   }
-  text += ` 유찰 횟수는 최대 ${maxFailed}회에 달하는 물건도 있습니다.`;
-  text += ` 유찰이 반복될수록 최저입찰가가 낮아지는 경향이 있어 실수요자·투자자 모두 눈여겨볼 만한 물건들입니다.`;
+  text += pickVariant(FAILED_COUNT_VARIANTS, dateLabel + "failed")(maxFailed);
+  text += pickVariant(CLOSING_INSIGHT_VARIANTS, dateLabel + "closing");
 
   return `<p>${text}</p>`;
 }
 
+const DISCLAIMER_VARIANTS = [
+  dateLabel => `<p>아래 내용은 특정 물건에 대한 매수·입찰 권유가 아니며, 권리관계나 현장 상태 등 자세한 내용은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 검색하여 확인하시길 권장드립니다.</p>
+<p>본 정보에서는 부동산 공매정보, 차량 공매정보, 동산 공매정보를 제공 하며, 매일 매일 물건이 업로드 되니 본 사이트를 즐겨찾기 해두시고 정보를 받아 가시기 바랍니다.</p>`,
+  dateLabel => `<p>이 목록은 매수·입찰을 권유하기 위한 것이 아니라 정보 전달 목적입니다. 권리관계, 현장 상태 등 실제 입찰 전 확인이 필요한 내용은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 조회해보시기 바랍니다.</p>
+<p>부동산·차량·동산 공매정보를 매일 업데이트하고 있으니, 필요하실 때 참고하실 수 있도록 즐겨찾기 해두시면 좋습니다.</p>`,
+  dateLabel => `<p>특정 물건을 추천드리는 게 아니라 오늘 새로 올라온 공매정보를 정리해서 전달드리는 취지입니다. 상세한 권리관계나 현장 확인은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 확인하시길 권장드립니다.</p>
+<p>부동산, 차량, 동산 공매정보가 매일 새로 올라오니 자주 확인해보시기 바랍니다.</p>`,
+];
+
 function buildContent(byKind, dateLabel) {
   const intro = `${buildDataIntro(byKind, dateLabel)}
-<p>아래 내용은 특정 물건에 대한 매수·입찰 권유가 아니며, 권리관계나 현장 상태 등 자세한 내용은 <a href="https://www.onbid.co.kr" rel="noopener">온비드 사이트(www.onbid.co.kr)</a>에서 물건관리번호로 직접 검색하여 확인하시길 권장드립니다.</p>
-<p>본 정보에서는 부동산 공매정보, 차량 공매정보, 동산 공매정보를 제공 하며, 매일 매일 물건이 업로드 되니 본 사이트를 즐겨찾기 해두시고 정보를 받아 가시기 바랍니다.</p>`;
+${pickVariant(DISCLAIMER_VARIANTS, dateLabel + "disclaimer")(dateLabel)}`;
 
   const sections = KINDS
     .filter(({ key }) => byKind[key] && byKind[key].length > 0)

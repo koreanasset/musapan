@@ -1,4 +1,5 @@
 import { generateThumbnail, uploadThumbnail, insertPost } from "./thumbnail.js";
+import { pickVariant } from "./textVariants.js";
 
 const KIWOOM_BASE = "https://api.kiwoom.com";
 // Kiwoom market_tp codes: "0" = 코스피, "101" = 코스닥 ("1" silently falls back to KOSPI)
@@ -126,6 +127,18 @@ function listRows(list, withVolume) {
     .join("\n");
 }
 
+const OPENING_VARIANTS = [
+  dateLabel => `${dateLabel} 주식시장 마감 기준, `,
+  dateLabel => `${dateLabel} 장 마감 결과를 정리해드립니다. `,
+  dateLabel => `${dateLabel} 코스피·코스닥 마감 데이터입니다. `,
+];
+
+const DISCLAIMER_VARIANTS = [
+  "아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.",
+  "이 정리는 투자 권유가 아니라 오늘의 시장 수치를 객관적으로 요약한 것이며, 최종 투자 판단과 책임은 투자자 본인에게 있습니다.",
+  "매수·매도 추천이 아닌 시장 데이터 요약이며, 투자 여부에 대한 판단과 책임은 투자자 본인에게 있습니다.",
+];
+
 function buildTemplateContent(bySection, dateLabel) {
   const sections = SECTION_LABELS.map(label => {
     const color = SECTION_COLORS[label];
@@ -169,7 +182,7 @@ ${listRows(declineList, false)}
   const topVolume        = [...bySection["코스피"].volumeList, ...bySection["코스닥"].volumeList]
     .sort((a, b) => Number(b.trde_qty) - Number(a.trde_qty))[0];
 
-  let introText = `${dateLabel} 주식시장 마감 기준, `;
+  let introText = pickVariant(OPENING_VARIANTS, dateLabel)(dateLabel);
   if (allLimitUp.length > 0) {
     introText += `상한가 종목은 총 ${allLimitUp.length}개 발생했습니다. `;
   } else {
@@ -191,7 +204,7 @@ ${listRows(declineList, false)}
   if (highlights.length > 0) {
     introText += highlights.join(", ") + "였습니다. ";
   }
-  introText += `아래 내용은 매수·매도를 권유하는 의견이 아니라 수치를 객관적으로 요약한 정보이며, 투자 판단과 책임은 투자자 본인에게 있습니다.`;
+  introText += pickVariant(DISCLAIMER_VARIANTS, dateLabel + "disclaimer");
 
   return `<p>${introText}</p>
 ${sections}`;
