@@ -561,6 +561,13 @@ export default function App() {
     }
   }, [view.page, view.category, view.subcategory, loadPosts]);
 
+  // Switching pages/posts (e.g. the "다음글"/"이전글" links at the bottom of
+  // a post) should always land the reader at the top of the new content,
+  // not wherever the scroll happened to be on the previous page.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view.page, view.category, view.subcategory, view.postId]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
