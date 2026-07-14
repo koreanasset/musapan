@@ -13,8 +13,14 @@ const KINDS = [
   { key: "movable", label: "동산", op: "OnbidMvastListSrvc2/getMvastCltrList2" },
 ];
 
+// Keyed by cltrMngNo alone (not the round-specific pbctCdtnNo) to match how
+// dedup works everywhere downstream (alreadyPosted lookup, the DB upsert).
+// A re-listing after a failed bid gets a new pbctCdtnNo but is still the
+// same underlying asset — keeping both would let one asset appear twice in
+// the same batch, which crashes the upsert with "ON CONFLICT DO UPDATE
+// command cannot affect row a second time" (seen 2026-07-14).
 function dedupeKey(item) {
-  return `${item.cltrMngNo}_${item.pbctCdtnNo}`;
+  return item.cltrMngNo;
 }
 
 // Keyed by cltrMngNo only (not the round-specific pbctCdtnNo): re-listings
