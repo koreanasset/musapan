@@ -20,7 +20,7 @@ const CATEGORIES = [
   // an empty-content issue — just un-hide once approved.
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"], hidden: true },
   { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
-  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"] },
+  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"], hiddenSubs: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기"] },
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"], hidden: true },
   { id: "politics", name: "정치사회", icon: Megaphone, color: "#8b5cf6", sub: ["정치토론방", "사회, 사건사고", "생활 법률", "보수", "중도", "진보"], hidden: true },
