@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText } from "lucide-react";
+import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText, Clock } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
@@ -385,6 +385,15 @@ function mapPost(row) {
 
 const POST_SELECT = "*, profiles!posts_author_id_fkey(nickname, role, points), comments(*, profiles!comments_author_id_fkey(nickname, role, points))";
 
+// Scheduled ("예약발행") posts are inserted immediately with a future
+// created_at instead of going through a separate publish step — no cron/job
+// needed, since visibility is just a comparison against createdAt wherever
+// posts are gated (mirrors how BOARD_PERMISSIONS is already enforced at the
+// app layer rather than in RLS).
+function isScheduledFuture(post) {
+  return !!post?.createdAt && new Date(post.createdAt).getTime() > Date.now();
+}
+
 export default function App() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -400,6 +409,7 @@ export default function App() {
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetNewPassword2, setResetNewPassword2] = useState("");
   const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
+  const [scheduledAt, setScheduledAt] = useState(""); // datetime-local string; empty = publish immediately
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState("");
@@ -450,6 +460,7 @@ export default function App() {
 
   const isPoppingRef = useRef(false);
   const didMountRef = useRef(false);
+  const adsInjectedRef = useRef(false);
 
   useEffect(() => {
     history.replaceState(view, "", buildPath(view));
@@ -630,13 +641,19 @@ export default function App() {
     return data || null;
   }
 
+  function isOwnScheduledPost(post) {
+    return !!currentUser && (currentUser.id === post.authorId || currentUser.role === "master");
+  }
+
   function canListPost(post) {
+    if (isScheduledFuture(post) && !isOwnScheduledPost(post)) return false;
     const perm = BOARD_PERMISSIONS[post.subcategory];
     if (!perm || perm.list !== "member") return true;
     return !!currentUser;
   }
 
   function canViewDetail(post) {
+    if (isScheduledFuture(post) && !isOwnScheduledPost(post)) return false;
     const perm = BOARD_PERMISSIONS[post.subcategory];
     if (!perm || perm.detail === "guest") return true;
     if (perm.detail === "member") return !!currentUser;
@@ -655,6 +672,37 @@ export default function App() {
     .filter(p => canListPost(p))
     .sort((a, b) => (b.likes + b.comments.length * 2) - (a.likes + a.comments.length * 2))
     .slice(0, 15);
+
+  // For the "[[ my posts" link picker in the write form.
+  const myLinkablePosts = currentUser
+    ? posts
+        .filter(p => p.authorId === currentUser.id)
+        .map(p => ({ id: p.id, title: p.title, url: `${SITE_URL}${buildPath({ page: "detail", category: p.category, subcategory: p.subcategory, postId: p.id })}` }))
+    : [];
+
+  // AdSense Auto ads is loaded on demand instead of unconditionally from
+  // index.html, so it never places ads on genuinely thin pages (an empty
+  // category/subcategory list, the "포인트놀이터" placeholder, a private/
+  // scheduled post's locked message) — that combination (Auto ads + blank
+  // page) was the stated reason for a past AdSense rejection. Once loaded
+  // for a session it stays loaded; it just never fires on a page that
+  // never had real content to begin with.
+  useEffect(() => {
+    if (adsInjectedRef.current) return;
+    const hasContent =
+      view.page === "home" ||
+      view.page === "legal" ||
+      (view.page === "detail" && !!currentPost && canViewDetail(currentPost)) ||
+      (view.page === "category" && !!view.category && postsByCategory(view.category, view.subcategory).length > 0) ||
+      (view.page === "hot" && hotPosts.length > 0);
+    if (!hasContent) return;
+    adsInjectedRef.current = true;
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5928272811428879";
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+  }, [view, posts, currentPost, hotPosts]);
 
   function postsByCategory(catId, subcat) {
     return posts
@@ -714,18 +762,21 @@ export default function App() {
     if (prefillSub && !canWriteToSubcategory(prefillSub)) prefillSub = null;
     setEditingPostId(null);
     setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub, thumbnail: null });
+    setScheduledAt("");
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
   function openEditPost(post) {
     setEditingPostId(post.id);
     setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory, thumbnail: post.thumbnail || null });
+    setScheduledAt("");
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
   function cancelWrite() {
     setView({ page: "category", category: newPost.category, subcategory: newPost.subcategory || null, postId: null });
     setEditingPostId(null);
+    setScheduledAt("");
   }
 
   function canModify(authorNickname) {
@@ -1009,8 +1060,20 @@ export default function App() {
 
   async function submitPost() {
     const isContentEmpty = !newPost.content || !newPost.content.replace(/<(.|\n)*?>/g, "").trim();
-    if (!newPost.title.trim() || isContentEmpty || !currentUser) return;
+    if (!currentUser) return;
+    if (!newPost.title.trim()) { alert("제목을 입력해주세요."); return; }
+    if (isContentEmpty) { alert("내용을 입력해주세요."); return; }
     if (newPost.subcategory && !canWriteToSubcategory(newPost.subcategory)) return;
+
+    let scheduledIso = null;
+    if (!editingPostId && scheduledAt) {
+      const scheduledDate = new Date(scheduledAt);
+      if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+        alert("예약 발행 시간은 현재 시각 이후로 입력해주세요.");
+        return;
+      }
+      scheduledIso = scheduledDate.toISOString();
+    }
 
     if (editingPostId) {
       const { data, error } = await supabase.from("posts").update({
@@ -1037,7 +1100,7 @@ export default function App() {
         return;
       }
     }
-    const { data, error } = await supabase.from("posts").insert({
+    const insertPayload = {
       category: newPost.category,
       subcategory: newPost.subcategory || null,
       title: newPost.title,
@@ -1045,12 +1108,18 @@ export default function App() {
       thumbnail_url: newPost.thumbnail || null,
       author_id: currentUser.id,
       ip,
-    }).select(POST_SELECT).single();
+    };
+    if (scheduledIso) insertPayload.created_at = scheduledIso;
+    const { data, error } = await supabase.from("posts").insert(insertPayload).select(POST_SELECT).single();
     if (error || !data) return;
     const mapped = mapPost(data);
     setPosts(prev => [mapped, ...prev]);
     await addPointsTo(currentUser, 5);
     setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
+    setScheduledAt("");
+    if (scheduledIso) {
+      alert(`예약 발행되었습니다. ${formatDateTime(scheduledIso)}에 공개됩니다.`);
+    }
     setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
   }
 
@@ -1843,6 +1912,9 @@ export default function App() {
                         <div className="flex-1 min-w-0">
                           <span className="font-medium break-words">{p.title}</span>
                           {p.subcategory && <span className="text-[11px] text-gray-400 ml-1.5 bg-gray-100 px-1.5 py-0.5 rounded">{p.subcategory}</span>}
+                          {isScheduledFuture(p) && isOwnScheduledPost(p) && (
+                            <span className="text-[11px] text-amber-600 ml-1.5 bg-amber-50 px-1.5 py-0.5 rounded">⏰ {p.date} 예약</span>
+                          )}
                           {!canViewDetail(p) && <span className="text-[11px] text-gray-400 ml-1">🔒</span>}
                           {p.comments.length > 0 && <span className="text-indigo-500 text-xs ml-1">[{p.comments.length}]</span>}
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
@@ -1877,12 +1949,14 @@ export default function App() {
               <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
                 <Shield size={32} className="text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm mb-1">
-                  {!currentUser ? "로그인이 필요한 게시글입니다." : "비공개 게시글입니다."}
+                  {isScheduledFuture(currentPost) ? "아직 공개되지 않은 게시글입니다." : !currentUser ? "로그인이 필요한 게시글입니다." : "비공개 게시글입니다."}
                 </p>
                 <p className="text-gray-400 text-xs">
-                  {BOARD_PERMISSIONS[currentPost.subcategory]?.detail === "owner" ? "작성자와 운영자만 볼 수 있어요." : "회원만 볼 수 있는 게시글이에요."}
+                  {isScheduledFuture(currentPost)
+                    ? `${currentPost.date}에 공개될 예정이에요.`
+                    : BOARD_PERMISSIONS[currentPost.subcategory]?.detail === "owner" ? "작성자와 운영자만 볼 수 있어요." : "회원만 볼 수 있는 게시글이에요."}
                 </p>
-                {!currentUser && (
+                {!currentUser && !isScheduledFuture(currentPost) && (
                   <button onClick={() => openAuth("login")} className="mt-4 text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">로그인하기</button>
                 )}
               </div>
@@ -1901,6 +1975,9 @@ export default function App() {
                     {CATEGORIES.find(c => c.id === currentPost.category).name}
                   </span>
                   {currentPost.subcategory && <span className="text-xs text-gray-400 ml-2">› {currentPost.subcategory}</span>}
+                  {isScheduledFuture(currentPost) && isOwnScheduledPost(currentPost) && (
+                    <span className="text-xs text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded">⏰ {currentPost.date}에 공개 예정 (나에게만 보임)</span>
+                  )}
                   <h1 className="text-xl font-bold mt-2 mb-3">{currentPost.title}</h1>
                   <div className="flex items-center gap-3 text-sm text-gray-400 pb-3 border-b border-gray-100 flex-wrap">
                     <Avatar nickname={currentPost.author} size={28} avatarUrl={findUser(currentPost.author)?.avatar_url} />
@@ -2227,6 +2304,28 @@ export default function App() {
                   placeholder="제목"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 text-base"
                 />
+                {!editingPostId && (
+                  <div className="mb-4">
+                    <label className="text-sm font-bold mb-2 flex items-center gap-1.5">
+                      <Clock size={14} className="text-gray-400" />
+                      예약발행 (선택)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={e => setScheduledAt(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 text-sm"
+                      />
+                      {scheduledAt && (
+                        <button onClick={() => setScheduledAt("")} className="text-xs text-gray-400 hover:text-red-500">
+                          예약 취소
+                        </button>
+                      )}
+                    </div>
+                    {scheduledAt && <p className="text-xs text-gray-400 mt-1">지정한 시각 전까지는 나에게만 보입니다.</p>}
+                  </div>
+                )}
                 <div className="mb-4">
                   <p className="text-sm font-bold mb-2">썸네일 (검색결과/공유 시 미리보기 이미지)</p>
                   <div className="flex items-center gap-3">
@@ -2253,7 +2352,9 @@ export default function App() {
                     onChange={html => setNewPost(prev => ({ ...prev, content: html }))}
                     placeholder="내용을 입력하세요"
                     minHeight={420}
+                    linkablePosts={myLinkablePosts}
                   />
+                  <p className="text-xs text-gray-400 mt-1">내용 중에 <code className="bg-gray-100 px-1 rounded">[[</code> 를 입력하면 내가 쓴 글을 검색해서 바로 링크로 첨부할 수 있어요.</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={cancelWrite} className="flex-1 border border-gray-200 text-gray-500 py-2.5 rounded-lg font-medium hover:bg-gray-50">
