@@ -53,6 +53,8 @@ export default async function handler(req, res) {
 <meta charset="UTF-8" />
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
+<link rel="icon" type="image/png" sizes="32x32" href="${base}/icon-32-v3.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="${base}/icon-64-v3.png" />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="${escapeHtml(title)}" />
 <meta property="og:description" content="${escapeHtml(description)}" />

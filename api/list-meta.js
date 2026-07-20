@@ -82,6 +82,8 @@ export default async function handler(req, res) {
 <meta charset="UTF-8" />
 <title>${escapeHtml(pageTitle)}</title>
 <meta name="description" content="주식, 부동산, 보험, 금융정보를 다루는 코리안에셋 커뮤니티입니다." />
+<link rel="icon" type="image/png" sizes="32x32" href="${base}/icon-32-v3.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="${base}/icon-64-v3.png" />
 </head>
 <body>
 <h1>${escapeHtml(pageTitle)}</h1>
