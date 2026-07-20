@@ -479,6 +479,16 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "canonical";
+      document.head.appendChild(link);
+    }
+    link.href = `${SITE_URL}${buildPath(view)}`;
+  }, [view]);
+
+  useEffect(() => {
     setSearch("");
   }, [view]);
 
