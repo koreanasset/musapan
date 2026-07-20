@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText, Clock } from "lucide-react";
+import { TrendingUp, Home, Shield, Coins, Megaphone, Users, Target, Search, Bell, Mail, User, Eye, ThumbsUp, ThumbsDown, X, Flame, Trophy, ChevronRight, UserCircle2, Ban, MessageSquareText, Clock, Newspaper } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
@@ -10,10 +10,6 @@ import ShareButtons from "./ShareButtons";
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
 // presentational — permissions/config stay intact, just toggle these off when
 // ready to reveal.
-// SHOW_TRENDING_WIDGET: temporarily off during AdSense re-review (nav/homepage
-// decluttering, not a content issue) — flip back to true once approved.
-const SHOW_TRENDING_WIDGET = false;
-
 const CATEGORIES = [
   // hidden here too (temporarily): AdSense re-review is in progress and the
   // nav feels crowded with 5 items for a site this size. Real content, not
@@ -671,6 +667,13 @@ export default function App() {
     .filter(p => !isBlockedByMe(p.author))
     .filter(p => canListPost(p))
     .sort((a, b) => (b.likes + b.comments.length * 2) - (a.likes + a.comments.length * 2))
+    .slice(0, 15);
+
+  // Home page "전체글 보기" — posts is already id-desc from loadPosts, so no
+  // re-sort needed; just the same visibility filters as everywhere else.
+  const latestPosts = posts
+    .filter(p => !isBlockedByMe(p.author))
+    .filter(p => canListPost(p))
     .slice(0, 15);
 
   // For the "[[ my posts" link picker in the write form.
@@ -1697,17 +1700,15 @@ export default function App() {
           <div className="flex flex-col lg:flex-row gap-5">
             <div className="flex-1 min-w-0">
                   <div className="space-y-5">
-                    {SHOW_TRENDING_WIDGET && (
                     <section className="bg-white rounded-lg border border-gray-200 p-4">
                       <h2 className="flex items-center gap-1.5 font-bold text-base mb-3">
-                        <Flame size={18} className="text-red-500" /> 떡상폭발 게시물
+                        <Newspaper size={18} className="text-indigo-500" /> 전체글 보기
                       </h2>
                       <div className="divide-y divide-gray-100">
-                        {hotPosts.map((p, i) => {
+                        {latestPosts.map(p => {
                           const cat = CATEGORIES.find(c => c.id === p.category);
                           return (
                             <button key={p.id} onClick={() => openPost(p.id)} className="w-full text-left py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 hover:bg-gray-50 -mx-1 px-1 rounded">
-                              <span className={`font-bold w-4 text-center shrink-0 ${i === 0 ? "text-red-500" : "text-gray-400"}`}>{i + 1}</span>
                               <span className="text-sm font-bold px-2 py-1 rounded shrink-0" style={{ color: cat.color, backgroundColor: cat.color + "1A" }}>{cat.name}</span>
                               <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">{p.date}</span>
                               <span className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 sm:min-w-0 font-medium line-clamp-2 sm:line-clamp-none sm:truncate">{p.title} {p.comments.length > 0 && <span className="text-indigo-500">[{p.comments.length}]</span>}</span>
@@ -1718,7 +1719,6 @@ export default function App() {
                         })}
                       </div>
                     </section>
-                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {BOARD_CATEGORIES.map(c => {
