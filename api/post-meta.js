@@ -1,6 +1,14 @@
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
+function slugify(name) {
+  return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
+}
+
+function postPath(p) {
+  return p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -41,7 +49,11 @@ export default async function handler(req, res) {
   const fullText = stripHtml(post.content);
   const description = fullText.slice(0, 150); // meta description: short, by convention
   const image = post.thumbnail_url || fallbackImage;
-  const url = `${base}${req.query.path || `/post/${post.id}`}`;
+  // Built from the post's own category/subcategory rather than trusting
+  // req.query.path — Vercel's rewrite substitution doesn't re-encode a
+  // Korean subcategory segment before dropping it into the destination
+  // query string, so that value arrives mojibake'd (broke og:url/canonical).
+  const url = `${base}${postPath(post)}`;
 
   // Meta tags (og:description etc.) stay short for link previews (Kakao,
   // Facebook, Twitter only read these tags). The <body> below carries the
