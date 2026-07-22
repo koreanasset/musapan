@@ -5,32 +5,32 @@
     { "source": "/rss.xml", "destination": "/api/rss.xml" },
     {
       "source": "/post/:id(\\d+)",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/post-meta?id=:id&path=/post/:id"
     },
     {
       "source": "/:category(stock|realestate|insurance|finance|politics|community)/:id(\\d+)",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/post-meta?id=:id&path=/:category/:id"
     },
     {
       "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub/:id(\\d+)",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/post-meta?id=:id&path=/:category/:sub/:id"
     },
     {
       "source": "/",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/list-meta"
     },
     {
       "source": "/:category(stock|realestate|insurance|finance|politics|community)",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/list-meta?category=:category"
     },
     {
       "source": "/:category(stock|realestate|insurance|finance|politics|community)/:sub",
-      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot).*" }],
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|Twitterbot|Slackbot|TelegramBot|KakaoTalk|line-poker|Yeti|NaverBot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|Mediapartners).*" }],
       "destination": "/api/list-meta?category=:category&sub=:sub"
     },
     { "source": "/", "destination": "/app.html" },
