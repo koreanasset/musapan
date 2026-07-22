@@ -5,6 +5,7 @@ import TinyEditor from "./TinyEditor";
 import DOMPurify from "dompurify";
 import { OrganizationSchema, ProfilePageSchema, ArticleSchema, SITE_URL } from "./SchemaMarkup";
 import ShareButtons from "./ShareButtons";
+import AdUnit from "./AdUnit";
 
 // hidden: category has no content yet, so it's kept out of nav/sitemap/routing
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
@@ -456,7 +457,6 @@ export default function App() {
 
   const isPoppingRef = useRef(false);
   const didMountRef = useRef(false);
-  const adsInjectedRef = useRef(false);
 
   useEffect(() => {
     history.replaceState(view, "", buildPath(view));
@@ -692,30 +692,6 @@ export default function App() {
         .filter(p => p.authorId === currentUser.id)
         .map(p => ({ id: p.id, title: p.title, url: `${SITE_URL}${buildPath({ page: "detail", category: p.category, subcategory: p.subcategory, postId: p.id })}` }))
     : [];
-
-  // AdSense Auto ads is loaded on demand instead of unconditionally from
-  // index.html, so it never places ads on genuinely thin pages (an empty
-  // category/subcategory list, the "포인트놀이터" placeholder, a private/
-  // scheduled post's locked message) — that combination (Auto ads + blank
-  // page) was the stated reason for a past AdSense rejection. Once loaded
-  // for a session it stays loaded; it just never fires on a page that
-  // never had real content to begin with.
-  useEffect(() => {
-    if (adsInjectedRef.current) return;
-    const hasContent =
-      view.page === "home" ||
-      view.page === "legal" ||
-      (view.page === "detail" && !!currentPost && canViewDetail(currentPost)) ||
-      (view.page === "category" && !!view.category && postsByCategory(view.category, view.subcategory).length > 0) ||
-      (view.page === "hot" && hotPosts.length > 0);
-    if (!hasContent) return;
-    adsInjectedRef.current = true;
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5928272811428879";
-    script.crossOrigin = "anonymous";
-    document.head.appendChild(script);
-  }, [view, posts, currentPost, hotPosts]);
 
   function postsByCategory(catId, subcat) {
     return posts
@@ -2002,6 +1978,9 @@ export default function App() {
                     className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
+                  <div className="py-2">
+                    <AdUnit key={currentPost.id} />
+                  </div>
                   <p className="text-xs text-gray-400 pt-3 border-t border-gray-100">
                     글쓴이: 현직 보험설계사 및 증권투자권유대행인 (생명보험·손해보험·제3보험 판매자격 보유) ·{" "}
                     <a
