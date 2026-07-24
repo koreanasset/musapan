@@ -391,6 +391,15 @@ function isScheduledFuture(post) {
   return !!post?.createdAt && new Date(post.createdAt).getTime() > Date.now();
 }
 
+// datetime-local inputs want "YYYY-MM-DDTHH:mm" in the browser's local time
+// (no timezone suffix) — matches how `new Date(scheduledAt)` on submit
+// re-interprets that same string as local time, so this is a clean round trip.
+function toDatetimeLocalValue(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function App() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -407,6 +416,7 @@ export default function App() {
   const [resetNewPassword2, setResetNewPassword2] = useState("");
   const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
   const [scheduledAt, setScheduledAt] = useState(""); // datetime-local string; empty = publish immediately
+  const [editingOriginalCreatedAt, setEditingOriginalCreatedAt] = useState(null);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState("");
@@ -752,13 +762,15 @@ export default function App() {
     setEditingPostId(null);
     setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub, thumbnail: null });
     setScheduledAt("");
+    setEditingOriginalCreatedAt(null);
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
   function openEditPost(post) {
     setEditingPostId(post.id);
     setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory, thumbnail: post.thumbnail || null });
-    setScheduledAt("");
+    setScheduledAt(isScheduledFuture(post) ? toDatetimeLocalValue(post.createdAt) : "");
+    setEditingOriginalCreatedAt(post.createdAt);
     setView({ page: "write", category: null, subcategory: null, postId: null });
   }
 
@@ -766,6 +778,7 @@ export default function App() {
     setView({ page: "category", category: newPost.category, subcategory: newPost.subcategory || null, postId: null });
     setEditingPostId(null);
     setScheduledAt("");
+    setEditingOriginalCreatedAt(null);
   }
 
   function canModify(authorNickname) {
@@ -1055,28 +1068,37 @@ export default function App() {
     if (newPost.subcategory && !canWriteToSubcategory(newPost.subcategory)) return;
 
     let scheduledIso = null;
-    if (!editingPostId && scheduledAt) {
+    let clearSchedule = false;
+    if (scheduledAt) {
       const scheduledDate = new Date(scheduledAt);
       if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
         alert("예약 발행 시간은 현재 시각 이후로 입력해주세요.");
         return;
       }
       scheduledIso = scheduledDate.toISOString();
+    } else if (editingPostId && isScheduledFuture({ createdAt: editingOriginalCreatedAt })) {
+      // Was scheduled, field just got cleared (e.g. "예약 취소") -> publish now.
+      clearSchedule = true;
     }
 
     if (editingPostId) {
-      const { data, error } = await supabase.from("posts").update({
+      const updatePayload = {
         category: newPost.category,
         subcategory: newPost.subcategory || null,
         title: newPost.title,
         content: newPost.content,
         thumbnail_url: newPost.thumbnail || null,
-      }).eq("id", editingPostId).select(POST_SELECT).single();
+      };
+      if (scheduledIso) updatePayload.created_at = scheduledIso;
+      else if (clearSchedule) updatePayload.created_at = new Date().toISOString();
+      const { data, error } = await supabase.from("posts").update(updatePayload).eq("id", editingPostId).select(POST_SELECT).single();
       if (error || !data) return;
       const mapped = mapPost(data);
       setPosts(prev => prev.map(p => p.id === editingPostId ? mapped : p));
       setEditingPostId(null);
       setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
+      setScheduledAt("");
+      setEditingOriginalCreatedAt(null);
       setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
       return;
     }
@@ -2293,28 +2315,29 @@ export default function App() {
                   placeholder="제목"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 mb-3 text-base"
                 />
-                {!editingPostId && (
-                  <div className="mb-4">
-                    <label className="text-sm font-bold mb-2 flex items-center gap-1.5">
-                      <Clock size={14} className="text-gray-400" />
-                      예약발행 (선택)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="datetime-local"
-                        value={scheduledAt}
-                        onChange={e => setScheduledAt(e.target.value)}
-                        className="px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 text-sm"
-                      />
-                      {scheduledAt && (
-                        <button onClick={() => setScheduledAt("")} className="text-xs text-gray-400 hover:text-red-500">
-                          예약 취소
-                        </button>
-                      )}
-                    </div>
-                    {scheduledAt && <p className="text-xs text-gray-400 mt-1">지정한 시각 전까지는 나에게만 보입니다.</p>}
+                <div className="mb-4">
+                  <label className="text-sm font-bold mb-2 flex items-center gap-1.5">
+                    <Clock size={14} className="text-gray-400" />
+                    예약발행 (선택)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="datetime-local"
+                      value={scheduledAt}
+                      onChange={e => setScheduledAt(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 text-sm"
+                    />
+                    {scheduledAt && (
+                      <button onClick={() => setScheduledAt("")} className="text-xs text-gray-400 hover:text-red-500">
+                        예약 취소
+                      </button>
+                    )}
                   </div>
-                )}
+                  {scheduledAt && <p className="text-xs text-gray-400 mt-1">지정한 시각 전까지는 나에게만 보입니다.</p>}
+                  {editingPostId && !scheduledAt && isScheduledFuture({ createdAt: editingOriginalCreatedAt }) && (
+                    <p className="text-xs text-amber-600 mt-1">예약이 취소되어 저장 시 바로 공개됩니다.</p>
+                  )}
+                </div>
                 <div className="mb-4">
                   <p className="text-sm font-bold mb-2">썸네일 (검색결과/공유 시 미리보기 이미지)</p>
                   <div className="flex items-center gap-3">
