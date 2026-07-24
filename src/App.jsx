@@ -11,6 +11,12 @@ import AdUnit from "./AdUnit";
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
 // presentational — permissions/config stay intact, just toggle these off when
 // ready to reveal.
+// SHOW_AD_UNIT: off until AdSense approval — pre-approval, Google's script
+// still reserves a fixed-height (280px) block for the "auto" format ins tag
+// even though it's unfilled, leaving a visible blank gap under every post.
+// Flip back on once approved (real ads will actually fill that space then).
+const SHOW_AD_UNIT = false;
+
 const CATEGORIES = [
   // hidden here too (temporarily): AdSense re-review is in progress and the
   // nav feels crowded with 5 items for a site this size. Real content, not
@@ -2000,9 +2006,11 @@ export default function App() {
                     className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
                   />
-                  <div className="py-2">
-                    <AdUnit key={currentPost.id} />
-                  </div>
+                  {SHOW_AD_UNIT && (
+                    <div className="py-2">
+                      <AdUnit key={currentPost.id} />
+                    </div>
+                  )}
                   <p className="text-xs text-gray-400 pt-3 border-t border-gray-100">
                     글쓴이: 현직 보험설계사 및 증권투자권유대행인 (생명보험·손해보험·제3보험 판매자격 보유) ·{" "}
                     <a
