@@ -2399,6 +2399,7 @@ export default function App() {
             <a href="/privacy" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" }); }} className="hover:text-white text-gray-300">개인정보처리방침</a>
             <button onClick={() => setLegalModal("ad")} className="hover:text-white">광고/제휴문의</button>
           </p>
+          <p className="mb-2">상호: 무사어판 · 대표자: 김수연 · 사업자등록번호: 313-09-71705</p>
           <p>© 2026 koreanAsset. All rights reserved.</p>
         </div>
       </footer>
@@ -2452,6 +2453,10 @@ export default function App() {
                   <p className="mb-3">주식·부동산 관련 정보는 투자 권유가 아닌 정보 제공을 목적으로 합니다. 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.</p>
                   <p className="font-medium text-gray-700 mb-1">면책 안내</p>
                   <p>이 사이트의 모든 콘텐츠는 정보 제공을 목적으로 하며, 전문적인 법률·세무·금융 자문을 대체하지 않습니다. 중요한 금융 의사결정은 반드시 해당 분야 전문가와 직접 상담하시기 바랍니다.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 mb-2">사업자 정보</p>
+                  <p>상호: 무사어판<br/>대표자: 김수연<br/>사업자등록번호: 313-09-71705</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">문의</p>
