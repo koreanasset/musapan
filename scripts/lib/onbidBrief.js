@@ -78,8 +78,11 @@ async function fetchKind(env, op, label) {
       page += 1;
     }
   }
-  // Only currently biddable listings (excludes 유찰 후 아직 재공고 준비중인 건).
-  return [...seen.values()].filter(item => item.pbctStatCd === "0002");
+  // Only currently biddable listings (excludes 유찰 후 아직 재공고 준비중인 건),
+  // and only sales — dspsMthodNm is "매각" or "임대"; 수의계약 가능(pvctTrgtYn=Y)
+  // listings in particular mix in a meaningful number of 임대 items that don't
+  // belong in a 공매(매각) brief.
+  return [...seen.values()].filter(item => item.pbctStatCd === "0002" && item.dspsMthodNm === "매각");
 }
 
 function fmtDt(s) {
