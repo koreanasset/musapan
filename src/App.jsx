@@ -2399,7 +2399,7 @@ export default function App() {
             <a href="/privacy" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" }); }} className="hover:text-white text-gray-300">개인정보처리방침</a>
             <button onClick={() => setLegalModal("ad")} className="hover:text-white">광고/제휴문의</button>
           </p>
-          <p className="mb-2">상호: 무사어판 · 대표자: 김수연 · 사업자등록번호: 313-09-71705</p>
+          <p className="mb-2">상호: 코리안에셋 · 대표자: 김수연 · 사업자등록번호: 313-09-71705</p>
           <p>© 2026 koreanAsset. All rights reserved.</p>
         </div>
       </footer>
@@ -2456,7 +2456,7 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-2">사업자 정보</p>
-                  <p>상호: 무사어판<br/>대표자: 김수연<br/>사업자등록번호: 313-09-71705</p>
+                  <p>상호: 코리안에셋<br/>대표자: 김수연<br/>사업자등록번호: 313-09-71705</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">문의</p>
