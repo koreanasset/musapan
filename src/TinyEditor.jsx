@@ -1,4 +1,5 @@
 import { useEffect, useRef, useId } from "react";
+import { supabase } from "./lib/supabaseClient";
 
 function loadTinyMCEScript() {
   if (window.tinymce) return Promise.resolve();
@@ -18,13 +19,40 @@ function escapeHtml(s) {
   return String(s).replace(/[<>&'"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
 
-export default function TinyEditor({ value, onChange, placeholder, minHeight = 420, linkablePosts = [] }) {
+// Uploads a pasted/dropped/inserted image to the same "post-images" bucket
+// the thumbnail uploader uses, and hands TinyMCE back the public URL.
+function uploadEditorImage(userId, blob, filename) {
+  return new Promise((resolve, reject) => {
+    if (!blob.type.startsWith("image/")) {
+      reject("이미지 파일만 첨부할 수 있습니다.");
+      return;
+    }
+    if (blob.size > 5 * 1024 * 1024) {
+      reject("5MB 이하의 이미지만 첨부할 수 있습니다.");
+      return;
+    }
+    const ext = (filename && filename.includes(".")) ? filename.split(".").pop() : (blob.type.split("/")[1] || "png");
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    supabase.storage.from("post-images").upload(path, blob).then(({ error: uploadError }) => {
+      if (uploadError) {
+        reject(uploadError.message);
+        return;
+      }
+      const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+      resolve(data.publicUrl);
+    });
+  });
+}
+
+export default function TinyEditor({ value, onChange, placeholder, minHeight = 420, linkablePosts = [], userId }) {
   const id = useId().replace(/:/g, "-");
   const initializedRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const linkablePostsRef = useRef(linkablePosts);
   linkablePostsRef.current = linkablePosts;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   useEffect(() => {
     // Guard against React 18 StrictMode's dev-only double-invoke of effects;
@@ -40,6 +68,8 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
         height: minHeight,
         placeholder,
         menubar: false,
+        language: "ko_KR",
+        language_url: "/tinymce/langs/ko_KR.js",
         plugins: "lists link image table code wordcount advlist autolink charmap searchreplace visualblocks fullscreen preview",
         toolbar:
           "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough forecolor backcolor | " +
@@ -47,6 +77,14 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
         content_style: "body { font-family: -apple-system, sans-serif; font-size: 15px; }",
         branding: false,
         promotion: false,
+        // Lets the toolbar's image button (and drag-drop/paste) upload a
+        // local file straight into the "post-images" bucket instead of only
+        // accepting an already-hosted image URL.
+        automatic_uploads: true,
+        paste_data_images: true,
+        images_upload_handler: (blobInfo) =>
+          uploadEditorImage(userIdRef.current, blobInfo.blob(), blobInfo.filename())
+            .catch(err => { throw typeof err === "string" ? err : (err?.message || "업로드에 실패했습니다."); }),
         // TinyMCE defaults to relative_urls:true + remove_script_host:true,
         // which rewrites a pasted absolute same-origin URL (e.g. a link to
         // another post) into a host-relative href computed from *this*

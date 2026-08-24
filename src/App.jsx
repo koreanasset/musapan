@@ -2373,6 +2373,7 @@ export default function App() {
                     placeholder="내용을 입력하세요"
                     minHeight={420}
                     linkablePosts={myLinkablePosts}
+                    userId={currentUser.id}
                   />
                   <p className="text-xs text-gray-400 mt-1">내용 중에 <code className="bg-gray-100 px-1 rounded">[[</code> 를 입력하면 내가 쓴 글을 검색해서 바로 링크로 첨부할 수 있어요.</p>
                 </div>
