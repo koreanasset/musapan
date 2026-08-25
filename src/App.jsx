@@ -454,6 +454,7 @@ export default function App() {
   const [profileView, setProfileView] = useState(null);
   const [hotTab, setHotTab] = useState("today");
   const [legalModal, setLegalModal] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminMembers, setAdminMembers] = useState([]);
   const [adminSearch, setAdminSearch] = useState("");
@@ -2005,6 +2006,7 @@ export default function App() {
                   <div
                     className="post-content py-4 text-gray-800 leading-relaxed text-base"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentPost.content) }}
+                    onClick={(e) => { if (e.target.tagName === "IMG") setLightboxImage(e.target.src); }}
                   />
                   {SHOW_AD_UNIT && (
                     <div className="py-2">
@@ -2404,6 +2406,24 @@ export default function App() {
           <p>© 2026 koreanAsset. All rights reserved.</p>
         </div>
       </footer>
+
+      {lightboxImage && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 cursor-zoom-out" onClick={() => setLightboxImage(null)}>
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            aria-label="닫기"
+          >
+            <X size={28} />
+          </button>
+          <img
+            src={lightboxImage}
+            alt=""
+            className="max-w-full max-h-full object-contain cursor-default"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {legalModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 px-4" onClick={() => { setLegalModal(null); if (view.page === "legal") setView(HOME_VIEW); }}>
