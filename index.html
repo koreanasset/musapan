@@ -9,6 +9,12 @@
     <meta name="google-site-verification" content="_mj8GSyAvDiXW5y3AOtHwpR88L5hRGVR6gCDLrP51js" />
     <meta name="naver-site-verification" content="41da1a7ef94e8a12e9469dbfba4b72811be604dd" />
     <meta name="google-adsense-account" content="ca-pub-5928272811428879" />
+    <!-- Opens the connection (DNS+TLS) to Supabase while the JS bundle is
+         still downloading/parsing, instead of only starting it once the
+         app mounts and calls fetch. Shaves the handshake round-trip off
+         the "app loads, then asks for the post list" wait. -->
+    <link rel="preconnect" href="https://fokzgnabyivgfagtiuyp.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://fokzgnabyivgfagtiuyp.supabase.co" />
     <!-- Manual ad units only (see AdUnit.jsx). This script is the shared
          adsbygoogle.js runtime the manual <ins> units call into — it is
          REQUIRED regardless, but whether it also auto-scans the whole page
