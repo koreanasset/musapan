@@ -6,6 +6,12 @@ import DOMPurify from "dompurify";
 import { OrganizationSchema, ProfilePageSchema, ArticleSchema, SITE_URL } from "./SchemaMarkup";
 import ShareButtons from "./ShareButtons";
 import AdUnit from "./AdUnit";
+import StockQuotes from "./StockQuotes";
+
+// A subcategory tab that renders a live-ish data table (see StockQuotes.jsx)
+// instead of a normal post list — not a real board, so write/select-all
+// controls for it are hidden further down.
+const STOCK_QUOTES_SUB = "오늘주식시세";
 
 // hidden: category has no content yet, so it's kept out of nav/sitemap/routing
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
@@ -22,7 +28,7 @@ const CATEGORIES = [
   // nav feels crowded with 5 items for a site this size. Real content, not
   // an empty-content issue — just un-hide once approved.
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"], hidden: true },
-  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
+  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: [STOCK_QUOTES_SUB, "오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
   { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"], hiddenSubs: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기"] },
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"], hidden: true },
@@ -1835,12 +1841,14 @@ export default function App() {
                   );
                 })()}
               </h2>
-              <button
-                onClick={() => requireAuth(openWrite)}
-                className="text-sm bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700"
-              >
-                글쓰기
-              </button>
+              {!(view.category === "stock" && view.subcategory === STOCK_QUOTES_SUB) && (
+                <button
+                  onClick={() => requireAuth(openWrite)}
+                  className="text-sm bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700"
+                >
+                  글쓰기
+                </button>
+              )}
             </div>
             {(() => {
               const cat = CATEGORIES.find(c => c.id === view.category);
@@ -1869,7 +1877,7 @@ export default function App() {
                 </div>
               );
             })()}
-            {currentUser?.role === "master" && (() => {
+            {currentUser?.role === "master" && !(view.category === "stock" && view.subcategory === STOCK_QUOTES_SUB) && (() => {
               const visibleIds = postsByCategory(view.category, view.subcategory).map(p => p.id);
               return (
                 <div className="flex items-center gap-3 mb-2 px-1">
@@ -1901,6 +1909,9 @@ export default function App() {
                 </div>
               );
             })()}
+            {view.category === "stock" && view.subcategory === STOCK_QUOTES_SUB ? (
+              <StockQuotes />
+            ) : (
             <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
               {view.subcategory && !canListPost({ subcategory: view.subcategory }) ? (
                 <div className="text-center py-10">
@@ -1948,6 +1959,7 @@ export default function App() {
                 </>
               )}
             </div>
+            )}
           </div>
         ) : view.page === "point" ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -2285,7 +2297,9 @@ export default function App() {
                 </div>
                 {(() => {
                   const cat = BOARD_CATEGORIES.find(c => c.id === newPost.category);
-                  const subs = cat ? visibleSubs(cat) : [];
+                  // "오늘주식시세" isn't a real board (see STOCK_QUOTES_SUB) —
+                  // a post filed under it would never show up anywhere.
+                  const subs = cat ? visibleSubs(cat).filter(s => s !== STOCK_QUOTES_SUB) : [];
                   if (subs.length === 0) return null;
                   return (
                     <div className="flex gap-1.5 mb-4 flex-wrap">
@@ -3270,7 +3284,7 @@ export default function App() {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm"
                   >
                     <option value="">전체</option>
-                    {cat.sub.map(s => (
+                    {cat.sub.filter(s => s !== STOCK_QUOTES_SUB).map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
