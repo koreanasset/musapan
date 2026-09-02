@@ -14,6 +14,11 @@ function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
 }
 
+// "오늘주식시세" is a data-table board (see STOCK_QUOTES_SUB in src/App.jsx),
+// not a post — it never gets picked up by the posts loop below, so it
+// needs to be listed explicitly or crawlers never learn the URL exists.
+const EXTRA_BOARD_PATHS = [`/stock/${slugify("오늘주식시세")}`];
+
 function escapeXml(s) {
   return s.replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -32,6 +37,7 @@ export default async function handler(req, res) {
 
   const urls = [
     ...STATIC_PATHS.map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
+    ...EXTRA_BOARD_PATHS.map((p) => ({ loc: `${base}${p}`, priority: "0.8" })),
     ...posts.map((p) => {
       const path = p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;
       return { loc: `${base}${path}`, lastmod: (p.created_at || "").slice(0, 10), priority: "0.6" };

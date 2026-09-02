@@ -75,6 +75,9 @@ export default function StockQuotes() {
 
   return (
     <div>
+      <p className="text-sm text-gray-500 mb-3">
+        코스피, 코스닥 전 종목의 오늘자 현재가·전일대비·등락률·거래량을 장 마감 후 매일 업데이트합니다. 종목명으로 검색하거나 컬럼을 눌러 정렬할 수 있어요.
+      </p>
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex gap-1.5">
           {MARKET_TABS.map(m => (
