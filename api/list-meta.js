@@ -17,6 +17,17 @@ const CATEGORIES = [
 // site; keep them out of the crawler-facing listing too.
 const LIST_REQUIRES_LOGIN = new Set(["보험대란알림"]);
 
+// Subcategories currently hidden via hiddenSubs in src/App.jsx (accumulating
+// content out of public/crawler view). A request naming one of these falls
+// back to the parent category's general listing below — same as what a
+// human visitor gets from the live app, since findSubcategoryBySlug() there
+// only matches *visible* subs too. That keeps a crawler that already has
+// the exact URL from ever learning "there's a distinct board here, and
+// it's empty" instead of just seeing normal category content. Keep this
+// set in sync with src/App.jsx and with HIDDEN_SUBCATEGORIES in
+// api/sitemap.xml.js.
+const HIDDEN_SUBCATEGORIES = new Set(["분양정보"]);
+
 // "오늘주식시세" isn't a post board (see STOCK_QUOTES_SUB in src/App.jsx) —
 // it's a live data table (musapan/src/StockQuotes.jsx) reading the
 // stock_quotes table directly. Crawlers (including Mediapartners-Google,
@@ -134,7 +145,7 @@ function renderList(base, posts) {
 export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   const category = req.query.category || null;
-  const sub = req.query.sub || null;
+  const sub = HIDDEN_SUBCATEGORIES.has(req.query.sub) ? null : (req.query.sub || null);
 
   const catInfo = CATEGORIES.find(c => c.id === category);
   const isStockQuotes = category === "stock" && sub === STOCK_QUOTES_SUB;

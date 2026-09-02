@@ -19,6 +19,13 @@ function slugify(name) {
 // needs to be listed explicitly or crawlers never learn the URL exists.
 const EXTRA_BOARD_PATHS = [`/stock/${slugify("오늘주식시세")}`];
 
+// Subcategories currently hidden via hiddenSubs in src/App.jsx (accumulating
+// content out of public/crawler view). Keep this set in sync with that file
+// and with HIDDEN_SUBCATEGORIES in api/list-meta.js — a post filed under one
+// of these must not be listed here, or the sitemap itself becomes the way a
+// crawler discovers a board this flag was meant to keep unseen.
+const HIDDEN_SUBCATEGORIES = new Set(["분양정보"]);
+
 function escapeXml(s) {
   return s.replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -38,7 +45,7 @@ export default async function handler(req, res) {
   const urls = [
     ...STATIC_PATHS.map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
     ...EXTRA_BOARD_PATHS.map((p) => ({ loc: `${base}${p}`, priority: "0.8" })),
-    ...posts.map((p) => {
+    ...posts.filter((p) => !HIDDEN_SUBCATEGORIES.has(p.subcategory)).map((p) => {
       const path = p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;
       return { loc: `${base}${path}`, lastmod: (p.created_at || "").slice(0, 10), priority: "0.6" };
     }),
