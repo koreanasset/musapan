@@ -106,6 +106,39 @@ export function ProfilePageSchema() {
   );
 }
 
+// updatedAt: ISO timestamp of the most recent stock_quotes row, if loaded yet
+// (see src/StockQuotes.jsx, the only caller). Used for both the crawler-
+// facing rendering in api/list-meta.js and this live-page counterpart —
+// keep the two in sync if either changes.
+export function DatasetSchema({ updatedAt }) {
+  const url = `${SITE_URL}/stock/${encodeURIComponent("오늘주식시세")}`;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "오늘의 주식시세 - 코스피 코스닥 전종목 시세",
+    "description": "코스피, 코스닥 전 종목의 오늘자 현재가, 전일대비, 등락률, 거래량을 장 마감 후 매일 업데이트합니다.",
+    "url": url,
+    "keywords": ["오늘의 주식시세", "전종목시세", "코스피 시세", "코스닥 시세", "주식시세"],
+    "variableMeasured": ["현재가", "전일대비", "등락률", "거래량"],
+    "inLanguage": "ko-KR",
+    "creator": { "@id": `${SITE_URL}/#organization` },
+    "publisher": { "@id": `${SITE_URL}/#organization` },
+    ...(updatedAt ? { "dateModified": updatedAt, "temporalCoverage": updatedAt.slice(0, 10) } : {}),
+    "distribution": {
+      "@type": "DataDownload",
+      "encodingFormat": "text/html",
+      "contentUrl": url
+    }
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 // path: relative path from buildPath(view), e.g. "/stock/123"
 // categoryName: display name already resolved by the caller (CATEGORIES lookup)
 export function ArticleSchema({ post, path, categoryName }) {

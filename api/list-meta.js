@@ -1,5 +1,8 @@
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+// Kept as a plain constant (not imported from src/SchemaMarkup.jsx) since
+// this file is a Vercel serverless function, not part of the Vite/JSX build.
+const SITE_URL = "https://koreanasset.com";
 
 const CATEGORIES = [
   { id: "stock", name: "주식투자" },
@@ -36,6 +39,31 @@ async function fetchStockQuotes() {
   } catch {
     return [];
   }
+}
+
+// Keep in sync with DatasetSchema in src/SchemaMarkup.jsx (the live page's
+// counterpart) if either changes.
+function stockQuotesJsonLd(url, updatedAt) {
+  // Inlined rather than referencing "#organization" by @id: unlike the live
+  // React page (which always also renders OrganizationSchema, defining that
+  // node on the same page — see App.jsx), this server-rendered crawler path
+  // never emits that block, so an @id-only reference here would dangle.
+  const organization = { "@type": "Organization", "name": "코리안에셋", "url": SITE_URL };
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "오늘의 주식시세 - 코스피 코스닥 전종목 시세",
+    "description": "코스피, 코스닥 전 종목의 오늘자 현재가, 전일대비, 등락률, 거래량을 장 마감 후 매일 업데이트합니다.",
+    "url": url,
+    "keywords": ["오늘의 주식시세", "전종목시세", "코스피 시세", "코스닥 시세", "주식시세"],
+    "variableMeasured": ["현재가", "전일대비", "등락률", "거래량"],
+    "inLanguage": "ko-KR",
+    "creator": organization,
+    "publisher": organization,
+    ...(updatedAt ? { dateModified: updatedAt, temporalCoverage: updatedAt.slice(0, 10) } : {}),
+    "distribution": { "@type": "DataDownload", "encodingFormat": "text/html", "contentUrl": url },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
 }
 
 function renderStockQuotesTable(rows) {
@@ -120,8 +148,11 @@ export default async function handler(req, res) {
 
   let posts = [];
   let bodyHtml;
+  let extraHead = "";
   if (isStockQuotes) {
-    bodyHtml = renderStockQuotesTable(await fetchStockQuotes());
+    const quoteRows = await fetchStockQuotes();
+    bodyHtml = renderStockQuotesTable(quoteRows);
+    extraHead = stockQuotesJsonLd(`${base}${canonicalPath}`, quoteRows[0]?.updated_at || null);
   } else {
     if (category) {
       const subFilter = sub ? `&subcategory=eq.${encodeURIComponent(sub)}` : "";
@@ -143,6 +174,7 @@ export default async function handler(req, res) {
 <link rel="canonical" href="${escapeHtml(base + canonicalPath)}" />
 <link rel="icon" type="image/png" sizes="32x32" href="${base}/icon-32-v3.png" />
 <link rel="icon" type="image/png" sizes="64x64" href="${base}/icon-64-v3.png" />
+${extraHead}
 </head>
 <body>
 <h1>${escapeHtml(pageTitle)}</h1>
