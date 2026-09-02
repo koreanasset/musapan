@@ -2,6 +2,21 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SITE_URL = "https://koreanasset.com"; // see api/list-meta.js's note on why this isn't imported from src/SchemaMarkup.jsx
 
+// These three post daily, in an near-identical template with only the
+// numbers changing (오늘의 특징주: stockBrief.js, 중요공시/뉴스:
+// disclosureBrief.js, 경매, 공매: onbidBrief.js) — Search Console flagged
+// this exact pattern as "Discovered - currently not indexed" and growing
+// (118 pages and climbing as of 2026-09-02): Google isn't rejecting them
+// individually, it's decided the pattern isn't worth crawling at all.
+// noindex tells Google that deliberately instead of leaving it to notice
+// on its own, which is a healthier signal for the site's overall quality
+// than a pile of "discovered but ignored" URLs.
+// 분양정보 (aptBrief.js) is deliberately NOT in this set: each post is
+// about a distinct real apartment, not a repeating daily rollup — it's
+// unique content, not this pattern (also currently hidden entirely; see
+// HIDDEN_SUBCATEGORIES).
+const NOINDEX_SUBCATEGORIES = new Set(["오늘의 특징주", "중요공시/뉴스", "경매, 공매"]);
+
 const CATEGORY_NAMES = {
   stock: "주식투자",
   realestate: "부동산",
@@ -99,7 +114,7 @@ export default async function handler(req, res) {
 <meta charset="UTF-8" />
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
-<link rel="canonical" href="${escapeHtml(url)}" />
+${NOINDEX_SUBCATEGORIES.has(post.subcategory) ? '<meta name="robots" content="noindex, follow" />\n' : ""}<link rel="canonical" href="${escapeHtml(url)}" />
 <link rel="icon" type="image/png" sizes="32x32" href="${base}/icon-32-v3.png" />
 <link rel="icon" type="image/png" sizes="64x64" href="${base}/icon-64-v3.png" />
 <meta property="og:type" content="article" />

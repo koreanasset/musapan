@@ -13,6 +13,15 @@ import StockQuotes from "./StockQuotes";
 // controls for it are hidden further down.
 const STOCK_QUOTES_SUB = "오늘주식시세";
 
+// Same three daily-template automated boards flagged in Search Console as
+// "Discovered - currently not indexed" (growing, 118 pages as of
+// 2026-09-02) — Google decided the repeating daily pattern isn't worth
+// crawling. This only affects the live page (crawlers never actually reach
+// it — they get api/post-meta.js instead, which has its own copy of this
+// set to keep in sync). 분양정보 is deliberately excluded: each post is a
+// distinct real apartment, not a repeating rollup.
+const NOINDEX_SUBCATEGORIES = new Set(["오늘의 특징주", "중요공시/뉴스", "경매, 공매"]);
+
 // hidden: category has no content yet, so it's kept out of nav/sitemap/routing
 // until enough posts exist. hiddenSubs: same idea but per-subcategory. Purely
 // presentational — permissions/config stay intact, just toggle these off when
@@ -667,6 +676,22 @@ export default function App() {
   }, [currentUser?.id, loadNotifications, loadMessages]);
 
   const currentPost = posts.find(p => p.id === view.postId);
+
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]');
+    const shouldNoindex = view.page === "detail" && NOINDEX_SUBCATEGORIES.has(currentPost?.subcategory);
+    if (shouldNoindex) {
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "robots";
+        document.head.appendChild(meta);
+      }
+      meta.content = "noindex, follow";
+    } else if (meta) {
+      meta.remove();
+    }
+  }, [view.page, currentPost]);
+
   const isBlockedByMe = (nickname) => currentUser && (currentUser.blocked || []).includes(nickname);
   const findUser = (nickname) => profiles.find(u => u.nickname === nickname);
 
