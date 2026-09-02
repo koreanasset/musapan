@@ -1,5 +1,15 @@
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SITE_URL = "https://koreanasset.com"; // see api/list-meta.js's note on why this isn't imported from src/SchemaMarkup.jsx
+
+const CATEGORY_NAMES = {
+  stock: "주식투자",
+  realestate: "부동산",
+  insurance: "보험대란성지",
+  finance: "금융정보",
+  politics: "정치사회",
+  community: "커뮤니티",
+};
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
@@ -21,6 +31,30 @@ function stripHtml(html) {
     .trim();
 }
 
+// Matches ArticleSchema in src/SchemaMarkup.jsx — that component only ever
+// renders on the live React page, which crawlers (Googlebot,
+// Mediapartners-Google, KakaoTalk, etc. — see vercel.json) never actually
+// reach for a post URL; they get this server-rendered path instead. Keep
+// the two in sync if either changes.
+function articleJsonLd(post, url, image) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": stripHtml(post.content).slice(0, 200),
+    "url": url,
+    "datePublished": post.created_at,
+    "dateModified": post.created_at,
+    "image": image,
+    "inLanguage": "ko-KR",
+    "author": { "@type": "Person", "name": "코리안에셋 운영자", "url": `${SITE_URL}/about` },
+    "publisher": { "@type": "Organization", "name": "코리안에셋", "url": SITE_URL },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+    "articleSection": CATEGORY_NAMES[post.category] || "금융정보",
+  };
+  return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+}
+
 export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   const id = req.query.id;
@@ -29,7 +63,7 @@ export default async function handler(req, res) {
   let post = null;
   try {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id,title,content,category,subcategory,thumbnail_url`,
+      `${SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id,title,content,category,subcategory,thumbnail_url,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
     );
     if (r.ok) {
@@ -78,6 +112,7 @@ export default async function handler(req, res) {
 <meta name="twitter:title" content="${escapeHtml(title)}" />
 <meta name="twitter:description" content="${escapeHtml(description)}" />
 <meta name="twitter:image" content="${escapeHtml(image)}" />
+${articleJsonLd(post, url, image)}
 </head>
 <body>
 <h1>${escapeHtml(title)}</h1>
