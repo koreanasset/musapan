@@ -205,7 +205,7 @@ export async function runDisclosureBrief(env) {
 
   const aiContent = await buildAiContent(env, byCategory, dateLabel);
   const content = aiContent || buildTemplateContent(byCategory, dateLabel);
-  const thumbnailTitle = "주요 공시 모음";
+  const thumbnailTitle = "주식시장 주요 공시 모음";
   const title = `[공시브리핑] ${dateLabel} ${thumbnailTitle}`;
 
   let thumbnailUrl = null;
