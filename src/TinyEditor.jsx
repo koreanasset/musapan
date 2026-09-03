@@ -74,7 +74,13 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
         toolbar:
           "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough forecolor backcolor | " +
           "alignleft aligncenter alignright | bullist numlist | link image table | code fullscreen",
-        content_style: "body { font-family: -apple-system, sans-serif; font-size: 15px; }",
+        // Without this, the cursor only turns into a text I-beam directly
+        // over existing text — the empty space below the last line (which
+        // is most of the box when a post is short) stays the plain arrow.
+        // Other editors show the I-beam anywhere in the editable area so it
+        // reads as "click here to type", not just on text you've already
+        // written.
+        content_style: "body { font-family: -apple-system, sans-serif; font-size: 15px; cursor: text; }",
         branding: false,
         promotion: false,
         // Lets the toolbar's image button (and drag-drop/paste) upload a
