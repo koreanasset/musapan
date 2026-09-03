@@ -12,7 +12,7 @@ a,
 }
 
 .post-content h1 { font-size: 1.6em; font-weight: 700; margin: 0.6em 0 0.4em; }
-.post-content h2 { font-size: 1.4em; font-weight: 700; margin: 0.6em 0 0.4em; }
+.post-content h2 { font-size: 1.4em; font-weight: 700; margin: 0.6em 0 0.4em; color: #3598db; }
 .post-content h3 { font-size: 1.2em; font-weight: 700; margin: 0.6em 0 0.4em; }
 .post-content p { margin: 0.6em 0; }
 .post-content ul { margin: 0.6em 0; padding-left: 1.5em; list-style: disc; }

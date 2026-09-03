@@ -82,7 +82,9 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
         // written. The placeholder ("내용을 입력하세요") is TinyMCE's own
         // ::before overlay on the empty body, not part of the normal text
         // flow, so it needs its own rule — it doesn't just inherit body's.
-        content_style: "body { font-family: -apple-system, sans-serif; font-size: 15px; cursor: text; } body[data-mce-placeholder]::before { cursor: text !important; }",
+        // h2 color matches the real post view's .post-content h2 rule
+        // (index.css) — TinyMCE's default color swatch #10, "Blue".
+        content_style: "body { font-family: -apple-system, sans-serif; font-size: 15px; cursor: text; } body[data-mce-placeholder]::before { cursor: text !important; } h2 { color: #3598db; }",
         branding: false,
         promotion: false,
         // Lets the toolbar's image button (and drag-drop/paste) upload a
