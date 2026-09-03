@@ -15,6 +15,11 @@ const SITE_URL = "https://koreanasset.com"; // see api/list-meta.js's note on wh
 // about a distinct real apartment, not a repeating daily rollup — it's
 // unique content, not this pattern (also currently hidden entirely; see
 // HIDDEN_SUBCATEGORIES).
+// Gated on is_auto_generated too — the automation posts to these same
+// subcategories under the site's own "코리안에셋" account, which is also
+// how the owner posts real hand-written articles, so subcategory alone
+// isn't enough: it noindexed a real post once (2026-09-03) before this
+// column existed.
 const NOINDEX_SUBCATEGORIES = new Set(["오늘의 특징주", "중요공시/뉴스", "경매, 공매"]);
 
 const CATEGORY_NAMES = {
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
   let post = null;
   try {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id,title,content,category,subcategory,thumbnail_url,created_at`,
+      `${SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id,title,content,category,subcategory,thumbnail_url,created_at,is_auto_generated`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
     );
     if (r.ok) {
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
 <meta charset="UTF-8" />
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
-${NOINDEX_SUBCATEGORIES.has(post.subcategory) ? '<meta name="robots" content="noindex, follow" />\n' : ""}<link rel="canonical" href="${escapeHtml(url)}" />
+${post.is_auto_generated && NOINDEX_SUBCATEGORIES.has(post.subcategory) ? '<meta name="robots" content="noindex, follow" />\n' : ""}<link rel="canonical" href="${escapeHtml(url)}" />
 <link rel="icon" type="image/png" sizes="32x32" href="${base}/icon-32-v3.png" />
 <link rel="icon" type="image/png" sizes="64x64" href="${base}/icon-64-v3.png" />
 <meta property="og:type" content="article" />

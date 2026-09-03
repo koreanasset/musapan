@@ -73,6 +73,13 @@ export async function insertPost(env, { category, subcategory, title, content, t
       content,
       thumbnail_url: thumbnailUrl,
       author_id: authorId,
+      // Every caller of this helper is one of the automated brief scripts —
+      // distinguishes bot posts from the site owner's own manual posts even
+      // when both share an author account and/or a subcategory (see the
+      // noindex logic in api/post-meta.js and src/App.jsx, which needs this
+      // to avoid noindexing a real hand-written post filed under the same
+      // board as an automation, e.g. 경매, 공매).
+      is_auto_generated: true,
     }),
   });
   if (!insertRes.ok) {
