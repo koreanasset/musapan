@@ -434,6 +434,40 @@ function toDatetimeLocalValue(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Crash/close recovery for the write form: periodically mirrored to
+// localStorage while writing (see the autosave effect below), so a closed
+// tab or a dead PC doesn't lose an in-progress post. Keyed per edited post
+// (or "new" for a fresh post) so drafts for different posts don't clobber
+// each other; wrapped in try/catch since localStorage can throw (private
+// browsing, quota, disabled storage) and none of this should ever block
+// writing itself.
+function draftStorageKey(editingPostId) {
+  return editingPostId ? `musapan_draft_edit_${editingPostId}` : "musapan_draft_new";
+}
+
+function saveDraft(editingPostId, draft) {
+  try {
+    localStorage.setItem(draftStorageKey(editingPostId), JSON.stringify({ ...draft, savedAt: Date.now() }));
+  } catch {}
+}
+
+function loadDraft(editingPostId) {
+  try {
+    const raw = localStorage.getItem(draftStorageKey(editingPostId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(editingPostId) {
+  try { localStorage.removeItem(draftStorageKey(editingPostId)); } catch {}
+}
+
+function hasRealContent(title, content) {
+  return !!(title || "").trim() || !!(content || "").replace(/<(.|\n)*?>/g, "").trim();
+}
+
 export default function App() {
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -449,6 +483,7 @@ export default function App() {
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetNewPassword2, setResetNewPassword2] = useState("");
   const [newPost, setNewPost] = useState({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
+  const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [scheduledAt, setScheduledAt] = useState(""); // datetime-local string; empty = publish immediately
   const [editingOriginalCreatedAt, setEditingOriginalCreatedAt] = useState(null);
   const [editingPostId, setEditingPostId] = useState(null);
@@ -698,6 +733,20 @@ export default function App() {
     }
   }, [view.page, currentPost]);
 
+  // Crash/close recovery: mirror the in-progress post to localStorage a
+  // little after typing stops, so a browser crash or dead PC doesn't lose
+  // it. See openWrite/openEditPost for the restore prompt, and submitPost/
+  // cancelWrite for where the draft gets cleared again.
+  useEffect(() => {
+    if (view.page !== "write") return;
+    if (!hasRealContent(newPost.title, newPost.content)) return;
+    const timer = setTimeout(() => {
+      saveDraft(editingPostId, { ...newPost, scheduledAt });
+      setDraftSavedAt(Date.now());
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [view.page, newPost, scheduledAt, editingPostId]);
+
   const isBlockedByMe = (nickname) => currentUser && (currentUser.blocked || []).includes(nickname);
   const findUser = (nickname) => profiles.find(u => u.nickname === nickname);
 
@@ -825,25 +874,47 @@ export default function App() {
     let prefillSub = view.category === validCategory ? (view.subcategory || null) : null;
     if (prefillSub && !canWriteToSubcategory(prefillSub)) prefillSub = null;
     setEditingPostId(null);
-    setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub, thumbnail: null });
-    setScheduledAt("");
     setEditingOriginalCreatedAt(null);
     setView({ page: "write", category: null, subcategory: null, postId: null });
+
+    const draft = loadDraft(null);
+    if (draft && hasRealContent(draft.title, draft.content) && window.confirm("이전에 작성 중이던 글이 있습니다. 이어서 작성하시겠습니까?")) {
+      setNewPost({ title: draft.title || "", content: draft.content || "", category: draft.category || validCategory, subcategory: draft.subcategory ?? prefillSub, thumbnail: draft.thumbnail || null });
+      setScheduledAt(draft.scheduledAt || "");
+      setDraftSavedAt(draft.savedAt || null);
+      return;
+    }
+    clearDraft(null);
+    setNewPost({ title: "", content: "", category: validCategory, subcategory: prefillSub, thumbnail: null });
+    setScheduledAt("");
+    setDraftSavedAt(null);
   }
 
   function openEditPost(post) {
     setEditingPostId(post.id);
-    setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory, thumbnail: post.thumbnail || null });
-    setScheduledAt(isScheduledFuture(post) ? toDatetimeLocalValue(post.createdAt) : "");
     setEditingOriginalCreatedAt(post.createdAt);
     setView({ page: "write", category: null, subcategory: null, postId: null });
+
+    const draft = loadDraft(post.id);
+    if (draft && hasRealContent(draft.title, draft.content) && window.confirm("이 글을 편집하던 중 저장되지 않은 내용이 있습니다. 이어서 작성하시겠습니까?")) {
+      setNewPost({ title: draft.title || "", content: draft.content || "", category: draft.category || post.category, subcategory: draft.subcategory ?? post.subcategory, thumbnail: draft.thumbnail ?? (post.thumbnail || null) });
+      setScheduledAt(draft.scheduledAt || (isScheduledFuture(post) ? toDatetimeLocalValue(post.createdAt) : ""));
+      setDraftSavedAt(draft.savedAt || null);
+      return;
+    }
+    clearDraft(post.id);
+    setNewPost({ title: post.title, content: post.content, category: post.category, subcategory: post.subcategory, thumbnail: post.thumbnail || null });
+    setScheduledAt(isScheduledFuture(post) ? toDatetimeLocalValue(post.createdAt) : "");
+    setDraftSavedAt(null);
   }
 
   function cancelWrite() {
+    clearDraft(editingPostId);
     setView({ page: "category", category: newPost.category, subcategory: newPost.subcategory || null, postId: null });
     setEditingPostId(null);
     setScheduledAt("");
     setEditingOriginalCreatedAt(null);
+    setDraftSavedAt(null);
   }
 
   function canModify(authorNickname) {
@@ -1160,10 +1231,12 @@ export default function App() {
       if (error || !data) return;
       const mapped = mapPost(data);
       setPosts(prev => prev.map(p => p.id === editingPostId ? mapped : p));
+      clearDraft(editingPostId);
       setEditingPostId(null);
       setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
       setScheduledAt("");
       setEditingOriginalCreatedAt(null);
+      setDraftSavedAt(null);
       setView({ page: "detail", category: mapped.category, subcategory: mapped.subcategory, postId: mapped.id });
       return;
     }
@@ -1191,8 +1264,10 @@ export default function App() {
     const mapped = mapPost(data);
     setPosts(prev => [mapped, ...prev]);
     await addPointsTo(currentUser, 5);
+    clearDraft(null);
     setNewPost({ title: "", content: "", category: "community", subcategory: null, thumbnail: null });
     setScheduledAt("");
+    setDraftSavedAt(null);
     if (scheduledIso) {
       alert(`예약 발행되었습니다. ${formatDateTime(scheduledIso)}에 공개됩니다.`);
     }
@@ -2443,7 +2518,12 @@ export default function App() {
                     linkablePosts={myLinkablePosts}
                     userId={currentUser.id}
                   />
-                  <p className="text-xs text-gray-400 mt-1">내용 중에 <code className="bg-gray-100 px-1 rounded">[[</code> 를 입력하면 내가 쓴 글을 검색해서 바로 링크로 첨부할 수 있어요.</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-400">내용 중에 <code className="bg-gray-100 px-1 rounded">[[</code> 를 입력하면 내가 쓴 글을 검색해서 바로 링크로 첨부할 수 있어요.</p>
+                    {draftSavedAt && (
+                      <p className="text-xs text-gray-300 shrink-0 ml-2">임시저장됨 · {formatDateTime(new Date(draftSavedAt).toISOString())}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={cancelWrite} className="flex-1 border border-gray-200 text-gray-500 py-2.5 rounded-lg font-medium hover:bg-gray-50">
