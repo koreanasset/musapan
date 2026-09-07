@@ -18,6 +18,19 @@ function isLeveragedProduct(name) {
   return /레버리지|인버스|ETN/.test(String(name || ""));
 }
 
+// Cross-promotes the 오늘주식시세 board (전 종목 시세) right after this
+// post's intro paragraph, every time — inserted after the fact rather than
+// asked for in the AI prompt, since prompt-only instructions aren't
+// reliable enough to guarantee it appears on literally every publish.
+const STOCK_QUOTES_URL = "https://koreanasset.com/stock/오늘주식시세";
+function insertStockQuotesPromo(content) {
+  const promo = `<p>전체 주식시장 오늘주식시세표를 보고자 하신다면 아래 링크를 클릭 하세요.</p>\n<p><a href="${STOCK_QUOTES_URL}">${STOCK_QUOTES_URL}</a></p>`;
+  const introEnd = content.indexOf("</p>");
+  if (introEnd === -1) return `${content}\n${promo}`;
+  const insertAt = introEnd + "</p>".length;
+  return `${content.slice(0, insertAt)}\n${promo}${content.slice(insertAt)}`;
+}
+
 async function getKiwoomToken(env) {
   const r = await fetch(`${KIWOOM_BASE}/oauth2/token`, {
     method: "POST",
@@ -319,7 +332,7 @@ export async function runStockBrief(env) {
   const dateLabel = `${dataDate.getUTCFullYear()}.${String(dataDate.getUTCMonth() + 1).padStart(2, "0")}.${String(dataDate.getUTCDate()).padStart(2, "0")}`;
 
   const aiContent = await buildAiContent(env, bySection, dateLabel);
-  const content = aiContent || buildTemplateContent(bySection, dateLabel);
+  const content = insertStockQuotesPromo(aiContent || buildTemplateContent(bySection, dateLabel));
   const thumbnailTitle = "주식 상승률·하락률 순위, 거래량·등락률 순위 정보";
   const title = `${dateLabel} 주식 상승률 순위 및 하락률 순위, 거래량 및 등락률 순위 정보`;
 
