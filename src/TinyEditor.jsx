@@ -73,7 +73,7 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
         plugins: "lists link image table code wordcount advlist autolink charmap searchreplace visualblocks fullscreen preview",
         toolbar:
           "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough forecolor backcolor | " +
-          "alignleft aligncenter alignright | bullist numlist | link image table | code fullscreen",
+          "alignleft aligncenter alignright | bullist numlist | link image imageGallery table | code fullscreen",
         // Without this, the cursor only turns into a text I-beam directly
         // over existing text — the empty space below the last line (which
         // is most of the box when a post is short) stays the plain arrow.
@@ -111,6 +111,47 @@ export default function TinyEditor({ value, onChange, placeholder, minHeight = 4
           });
           ed.on("change keyup undo redo", () => {
             onChangeRef.current(ed.getContent());
+          });
+          // Multi-file picker -> uploads all of them, then inserts a single
+          // grid block (2 columns for exactly 2 images, 3 for 3+) so photos
+          // sit side by side in a row instead of stacking one per line like
+          // the regular "image" button's single insert does. Grid, not a
+          // swipeable carousel: no JS needed to display it, so it also
+          // renders correctly on the crawler-facing post page (api/post-
+          // meta.js), which can't run any client script.
+          ed.ui.registry.addButton("imageGallery", {
+            icon: "gallery",
+            tooltip: "사진 여러 장 한번에 삽입",
+            onAction: () => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+              input.multiple = true;
+              input.onchange = async () => {
+                const files = Array.from(input.files || []);
+                if (files.length === 0) return;
+                ed.setProgressState(true);
+                const results = await Promise.allSettled(
+                  files.map(f => uploadEditorImage(userIdRef.current, f, f.name))
+                );
+                ed.setProgressState(false);
+                const urls = results.filter(r => r.status === "fulfilled").map(r => r.value);
+                const failed = results.length - urls.length;
+                if (urls.length === 0) {
+                  alert("업로드에 실패했습니다.");
+                  return;
+                }
+                if (urls.length === 1) {
+                  ed.insertContent(`<img src="${urls[0]}" alt="" />`);
+                } else {
+                  const cols = urls.length >= 3 ? 3 : 2;
+                  const imgsHtml = urls.map(u => `<img src="${u}" alt="" />`).join("");
+                  ed.insertContent(`<div class="post-image-gallery cols-${cols}">${imgsHtml}</div><p></p>`);
+                }
+                if (failed > 0) alert(`${failed}장은 업로드에 실패했습니다 (5MB 이하 이미지만 가능).`);
+              };
+              input.click();
+            },
           });
           // WordPress-style "[[" internal-link picker: type [[ then a few
           // letters of one of your own post titles to insert a real link

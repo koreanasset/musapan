@@ -24,3 +24,14 @@ a,
 .post-content img { max-width: 100%; border-radius: 0.5rem; cursor: zoom-in; }
 .post-content a { color: #4f46e5; text-decoration: underline; }
 .post-content pre { background: #f4f4f5; padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; }
+
+/* Multi-photo insert from the write tool's "사진 여러 장" button — a static
+   CSS grid, not a JS carousel, so it also renders correctly on the
+   crawler-facing post page (api/post-meta.js), which runs no client script. */
+.post-content .post-image-gallery { display: grid; gap: 0.4rem; margin: 0.6em 0; }
+.post-content .post-image-gallery.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.post-content .post-image-gallery.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.post-content .post-image-gallery img { width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: cover; margin: 0; }
+@media (max-width: 480px) {
+  .post-content .post-image-gallery.cols-3 { grid-template-columns: repeat(2, 1fr); }
+}
