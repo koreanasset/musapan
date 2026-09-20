@@ -26,6 +26,16 @@ const EXTRA_BOARD_PATHS = [`/stock/${slugify("오늘주식시세")}`];
 // crawler discovers a board this flag was meant to keep unseen.
 const HIDDEN_SUBCATEGORIES = new Set(["분양정보"]);
 
+// Posts noindexed by api/post-meta.js (daily-template automation, gated on
+// is_auto_generated so a real hand-written post in the same subcategory is
+// unaffected — see that file for why). Listing a noindexed URL in the
+// sitemap anyway just spends crawl budget confirming a "please skip this"
+// tag Google was already going to see — worse, on a site whose real posts
+// are struggling to get indexed at all, that's crawl budget taken directly
+// from them. Keep in sync with NOINDEX_SUBCATEGORIES in api/post-meta.js
+// and src/App.jsx.
+const NOINDEX_SUBCATEGORIES = new Set(["오늘의 특징주", "중요공시/뉴스", "경매, 공매"]);
+
 function escapeXml(s) {
   return s.replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -34,7 +44,7 @@ export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   let posts = [];
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,category,subcategory,created_at&order=id.desc&limit=5000`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,category,subcategory,created_at,is_auto_generated&order=id.desc&limit=5000`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     });
     if (r.ok) posts = await r.json();
@@ -45,7 +55,7 @@ export default async function handler(req, res) {
   const urls = [
     ...STATIC_PATHS.map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
     ...EXTRA_BOARD_PATHS.map((p) => ({ loc: `${base}${p}`, priority: "0.8" })),
-    ...posts.filter((p) => !HIDDEN_SUBCATEGORIES.has(p.subcategory)).map((p) => {
+    ...posts.filter((p) => !HIDDEN_SUBCATEGORIES.has(p.subcategory) && !(p.is_auto_generated && NOINDEX_SUBCATEGORIES.has(p.subcategory))).map((p) => {
       const path = p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;
       return { loc: `${base}${path}`, lastmod: (p.created_at || "").slice(0, 10), priority: "0.6" };
     }),
