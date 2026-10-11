@@ -1,3 +1,6 @@
+// sanitize-html is imported dynamically inside renderRichBody, not here: a
+// static import that fails to load takes the whole function down (which is
+// what happened on the first attempt at this, 2026-10-11).
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SITE_URL = "https://koreanasset.com"; // see api/list-meta.js's note on why this isn't imported from src/SchemaMarkup.jsx
@@ -75,6 +78,70 @@ function articleJsonLd(post, url, image) {
   return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
 }
 
+// What a crawler gets as the post body. This used to be
+// `<p>${stripHtml(content)}</p>` — every post flattened into one paragraph of
+// plain text, with its images, headings, lists and links all thrown away
+// (measured 2026-10-11: originals had 1-9 images, 3-7 h2s, lists and links;
+// the served page had 0 of each). Googlebot and AdSense's Mediapartners-Google
+// are both routed here instead of the real page (see vercel.json), so that
+// stripped version is the *only* thing either of them ever evaluates — the
+// structure and photos that make a post look like a real article never
+// reached them. Serve the post's actual HTML structure instead, sanitized
+// (members can write posts; the browser side uses DOMPurify, this is the
+// server-side equivalent).
+async function renderPostBody(post) {
+  try {
+    return await renderRichBody(post);
+  } catch (e) {
+    // A failure here must never take the page down: the first version of this
+    // did (FUNCTION_INVOCATION_FAILED on every post page for ~8 minutes).
+    // Degrade to the old flattened text body instead of a 500.
+    console.error("rich post body failed, falling back to plain text:", e);
+    return `<p>${escapeHtml(stripHtml(post.content))}</p>`;
+  }
+}
+
+async function renderRichBody(post) {
+  const { default: sanitizeHtml } = await import("sanitize-html");
+  let imgCount = 0;
+  return sanitizeHtml(post.content || "", {
+    allowedTags: [
+      "p", "br", "hr", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li",
+      "strong", "em", "b", "i", "u", "s", "a", "img", "blockquote", "pre", "code",
+      "table", "thead", "tbody", "tr", "td", "th", "div", "span", "figure", "figcaption",
+    ],
+    allowedAttributes: {
+      a: ["href", "title", "rel"],
+      img: ["src", "alt", "width", "height", "loading"],
+      td: ["colspan", "rowspan"],
+      th: ["colspan", "rowspan"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    transformTags: {
+      // One h1 per page (the title); a body h1 becomes an h2.
+      h1: "h2",
+      a: (tagName, attribs) => ({ tagName, attribs: { ...attribs, rel: "noopener" } }),
+      // Editor-inserted images mostly have no alt text.
+      img: (tagName, attribs) => {
+        imgCount += 1;
+        return { tagName, attribs: { ...attribs, alt: attribs.alt || `${post.title} 사진 ${imgCount}`, loading: "lazy" } };
+      },
+    },
+  });
+}
+
+async function fetchRelatedPosts(post) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/posts?category=eq.${encodeURIComponent(post.category)}&id=neq.${post.id}&select=id,title,category,subcategory&order=id.desc&limit=6`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    return r.ok ? await r.json() : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   const id = req.query.id;
@@ -108,6 +175,7 @@ export default async function handler(req, res) {
   // Korean subcategory segment before dropping it into the destination
   // query string, so that value arrives mojibake'd (broke og:url/canonical).
   const url = `${base}${postPath(post)}`;
+  const related = await fetchRelatedPosts(post);
 
   // Meta tags (og:description etc.) stay short for link previews (Kakao,
   // Facebook, Twitter only read these tags). The <body> below carries the
@@ -133,10 +201,26 @@ ${post.is_auto_generated && NOINDEX_SUBCATEGORIES.has(post.subcategory) ? '<meta
 <meta name="twitter:description" content="${escapeHtml(description)}" />
 <meta name="twitter:image" content="${escapeHtml(image)}" />
 ${articleJsonLd(post, url, image)}
+<style>
+body{font-family:-apple-system,"Segoe UI","Malgun Gothic",sans-serif;max-width:760px;margin:0 auto;padding:16px;line-height:1.7;color:#1f2937}
+img{max-width:100%;height:auto}h1{font-size:1.5em;line-height:1.35}h2{font-size:1.3em;color:#3598db}
+header,footer{font-size:.9em;color:#6b7280}table{border-collapse:collapse}td,th{border:1px solid #e5e7eb;padding:.4em .6em}
+</style>
 </head>
 <body>
+<header><a href="${base}/">코리안에셋</a>${CATEGORY_NAMES[post.category] ? ` › <a href="${base}/${escapeHtml(post.category)}">${escapeHtml(CATEGORY_NAMES[post.category])}</a>` : ""}</header>
+<article>
 <h1>${escapeHtml(title)}</h1>
-<p>${escapeHtml(fullText)}</p>
+<p><time datetime="${escapeHtml(post.created_at || "")}">${escapeHtml((post.created_at || "").slice(0, 10).replace(/-/g, "."))}</time></p>
+${await renderPostBody(post)}
+</article>
+${related.length > 0 ? `<nav>
+<h2>같은 게시판의 다른 글</h2>
+<ul>
+${related.map(p => `<li><a href="${base}${postPath(p)}">${escapeHtml(p.title)}</a></li>`).join("\n")}
+</ul>
+</nav>` : ""}
+<footer><a href="${base}/about">소개</a> · <a href="${base}/terms">이용약관</a> · <a href="${base}/privacy">개인정보처리방침</a></footer>
 </body>
 </html>`;
 
