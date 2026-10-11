@@ -8,13 +8,11 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 // /hot is also temporarily excluded (nav decluttering during AdSense
 // re-review, not a content issue) — add it back once the "hot" category is
 // un-hidden in src/App.jsx.
-// /realestate also left out as of 2026-10-11: every post in it is hidden, so it
-// has nothing public (see HIDDEN_CATEGORIES below, and src/App.jsx).
-const STATIC_PATHS = ["/", "/stock", "/insurance", "/community", "/about", "/terms", "/privacy"];
+const STATIC_PATHS = ["/", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
 
 // Whole categories hidden from the live app and 404'd by api/list-meta.js.
 // Keep in sync with those two files.
-const HIDDEN_CATEGORIES = new Set(["finance", "politics", "realestate"]);
+const HIDDEN_CATEGORIES = new Set(["finance", "politics"]);
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));

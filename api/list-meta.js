@@ -35,7 +35,7 @@ const HIDDEN_SUBCATEGORIES = new Set(["분양정보", "오늘의 특징주", "�
 // an empty list — a thin page the real app never exposes. Leave them out of
 // the nav, and 404 a direct request. Keep in sync with src/App.jsx and with
 // HIDDEN_CATEGORIES in api/sitemap.xml.js.
-const HIDDEN_CATEGORIES = new Set(["finance", "politics", "realestate"]);
+const HIDDEN_CATEGORIES = new Set(["finance", "politics"]);
 
 // "오늘주식시세" isn't a post board (see STOCK_QUOTES_SUB in src/App.jsx) —
 // it's a live data table (musapan/src/StockQuotes.jsx) reading the

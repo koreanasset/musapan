@@ -57,13 +57,7 @@ const CATEGORIES = [
   // this only hides it from nav/crawlers. See also HIDDEN_SUBCATEGORIES in
   // api/sitemap.xml.js and api/list-meta.js, which must be kept in sync:
   // that flag alone doesn't stop a crawler that already has the exact URL.
-  // 부동산 hidden 2026-10-11: every post in it (경매, 공매 — including the three
-  // that weren't flagged as script output, which the owner said are automation
-  // too — and 분양정보) is now hidden from the public via is_auto_generated,
-  // so the menu would be an empty board. Un-hide this (and unflag those three
-  // posts: ids 257, 259, 260) when real 부동산 content exists. Keep in sync with
-  // HIDDEN_CATEGORIES in api/list-meta.js and api/sitemap.xml.js.
-  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"], hidden: true },
+  { id: "realestate", name: "부동산", icon: Home, color: "#10b981", sub: ["분양정보", "경매, 공매", "부동산토론"], hiddenSubs: ["분양정보", "부동산토론"] },
   { id: "insurance", name: "보험대란성지", icon: Shield, color: "#f43f5e", sub: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기", "청구 보상 후기", "보험상식"], hiddenSubs: ["보험대란알림", "Hey보험딜러 비교견적내줘", "내보험 진단하기"] },
   { id: "finance", name: "금융정보", icon: Coins, color: "#eab308", sub: ["가상화폐", "신용카드", "대출", "세금 및 연말정산", "정부지원금, 복지혜택"], hidden: true },
   { id: "politics", name: "정치사회", icon: Megaphone, color: "#8b5cf6", sub: ["정치토론방", "사회, 사건사고", "생활 법률", "보수", "중도", "진보"], hidden: true },
