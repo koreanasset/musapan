@@ -142,10 +142,41 @@ function renderList(base, posts) {
     .join("\n");
 }
 
+// The URL carries a slug ("경매-공매": runs of whitespace/commas/slashes
+// collapsed to "-", see slugify above), but posts.subcategory holds the real
+// name ("경매, 공매"). Filtering by the slug matched nothing, so every board
+// whose name has a space or comma ("경매, 공매", "청구 보상 후기", "오늘의
+// 특징주"...) rendered to crawlers — Googlebot and AdSense's reviewer
+// included — as an empty list under the right title, even though it had
+// posts. Single-word boards (보험상식, 자유게시판) happened to work.
+function plainSlug(name) {
+  return String(name).trim().replace(/[\s,/]+/g, "-");
+}
+
+const HIDDEN_SLUGS = new Set([...HIDDEN_SUBCATEGORIES].map(plainSlug));
+
+async function resolveSubcategory(category, rawSub) {
+  if (!rawSub) return null;
+  if (HIDDEN_SLUGS.has(plainSlug(rawSub))) return null; // hidden board: fall back to the category listing
+  if (rawSub === STOCK_QUOTES_SUB) return rawSub;
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/posts?select=subcategory&category=eq.${encodeURIComponent(category)}&subcategory=not.is.null&limit=1000`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    if (r.ok) {
+      const names = [...new Set((await r.json()).map(row => row.subcategory))];
+      const match = names.find(n => n === rawSub || plainSlug(n) === plainSlug(rawSub));
+      if (match) return match;
+    }
+  } catch {}
+  return rawSub;
+}
+
 export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   const category = req.query.category || null;
-  const sub = HIDDEN_SUBCATEGORIES.has(req.query.sub) ? null : (req.query.sub || null);
+  const sub = await resolveSubcategory(category, req.query.sub || null);
 
   const catInfo = CATEGORIES.find(c => c.id === category);
 
