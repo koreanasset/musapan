@@ -15,7 +15,6 @@
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "sanitize-html": "^2.18.0",
     "sharp": "^0.35.2",
     "tinymce": "^8.6.0"
   },
