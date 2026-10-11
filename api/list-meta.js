@@ -28,6 +28,15 @@ const LIST_REQUIRES_LOGIN = new Set(["보험대란알림"]);
 // api/sitemap.xml.js.
 const HIDDEN_SUBCATEGORIES = new Set(["분양정보", "오늘의 특징주", "중요공시/뉴스"]);
 
+// Whole categories hidden from the live app (`hidden: true` in src/App.jsx's
+// CATEGORIES — they have no public content, so they're out of the nav and
+// routing there). This page's nav links used to list all six categories
+// regardless, so a crawler following 금융정보 / 정치사회 landed on a title over
+// an empty list — a thin page the real app never exposes. Leave them out of
+// the nav, and 404 a direct request. Keep in sync with src/App.jsx and with
+// HIDDEN_CATEGORIES in api/sitemap.xml.js.
+const HIDDEN_CATEGORIES = new Set(["finance", "politics", "realestate"]);
+
 // "오늘주식시세" isn't a post board (see STOCK_QUOTES_SUB in src/App.jsx) —
 // it's a live data table (musapan/src/StockQuotes.jsx) reading the
 // stock_quotes table directly. Crawlers (including Mediapartners-Google,
@@ -176,6 +185,10 @@ async function resolveSubcategory(category, rawSub) {
 export default async function handler(req, res) {
   const base = `https://${req.headers.host}`;
   const category = req.query.category || null;
+  if (category && HIDDEN_CATEGORIES.has(category)) {
+    res.status(404).send("Not found");
+    return;
+  }
   const sub = await resolveSubcategory(category, req.query.sub || null);
 
   const catInfo = CATEGORIES.find(c => c.id === category);
@@ -220,7 +233,7 @@ export default async function handler(req, res) {
     bodyHtml = `<ul>\n${renderList(base, posts)}\n</ul>`;
   }
 
-  const navLinks = CATEGORIES.map(c => `<li><a href="${base}/${c.id}">${escapeHtml(c.name)}</a></li>`).join("\n");
+  const navLinks = CATEGORIES.filter(c => !HIDDEN_CATEGORIES.has(c.id)).map(c =>`<li><a href="${base}/${c.id}">${escapeHtml(c.name)}</a></li>`).join("\n");
 
   const html = `<!doctype html>
 <html lang="ko">

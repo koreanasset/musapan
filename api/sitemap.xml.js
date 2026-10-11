@@ -8,7 +8,13 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 // /hot is also temporarily excluded (nav decluttering during AdSense
 // re-review, not a content issue) — add it back once the "hot" category is
 // un-hidden in src/App.jsx.
-const STATIC_PATHS = ["/", "/stock", "/realestate", "/insurance", "/community", "/about", "/terms", "/privacy"];
+// /realestate also left out as of 2026-10-11: every post in it is hidden, so it
+// has nothing public (see HIDDEN_CATEGORIES below, and src/App.jsx).
+const STATIC_PATHS = ["/", "/stock", "/insurance", "/community", "/about", "/terms", "/privacy"];
+
+// Whole categories hidden from the live app and 404'd by api/list-meta.js.
+// Keep in sync with those two files.
+const HIDDEN_CATEGORIES = new Set(["finance", "politics", "realestate"]);
 
 function slugify(name) {
   return encodeURIComponent(name.trim().replace(/[\s,/]+/g, "-"));
@@ -61,7 +67,7 @@ export default async function handler(req, res) {
   const urls = [
     ...STATIC_PATHS.filter((p) => p !== "/stock" || hasStockPosts).map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
     ...EXTRA_BOARD_PATHS.map((p) => ({ loc: `${base}${p}`, priority: "0.8" })),
-    ...posts.filter((p) => !HIDDEN_SUBCATEGORIES.has(p.subcategory) && !(p.is_auto_generated && NOINDEX_SUBCATEGORIES.has(p.subcategory))).map((p) => {
+    ...posts.filter((p) => !HIDDEN_CATEGORIES.has(p.category) && !HIDDEN_SUBCATEGORIES.has(p.subcategory) && !(p.is_auto_generated && NOINDEX_SUBCATEGORIES.has(p.subcategory))).map((p) => {
       const path = p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;
       return { loc: `${base}${path}`, lastmod: (p.created_at || "").slice(0, 10), priority: "0.6" };
     }),
