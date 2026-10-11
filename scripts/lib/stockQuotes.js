@@ -101,8 +101,17 @@ function toQuoteRow(stk_cd, stk_nm, market, q) {
     cur_prc: Math.abs(Number(q.cur_prc)) || 0,
     pred_pre: Number(q.pred_pre) || 0,
     flu_rt: Number(q.flu_rt) || 0,
-    trde_qty: Number(q.trde_qty) || 0,
+    trde_qty: sanitizeVolume(q.trde_qty),
   };
+}
+
+// Kiwoom sometimes returns 2^32-1 (4,294,967,295) as a sentinel/overflow value
+// for thinly-traded leveraged/inverse products instead of a real volume
+// (stockBrief.js filters the same value out of its rankings). Stored as-is it
+// sorts to the very top of the 거래량 column looking like a data bug.
+function sanitizeVolume(raw) {
+  const n = Number(raw) || 0;
+  return n >= 4_294_967_295 ? 0 : n;
 }
 
 async function upsertQuotes(env, rows) {

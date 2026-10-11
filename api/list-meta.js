@@ -26,7 +26,7 @@ const LIST_REQUIRES_LOGIN = new Set(["보험대란알림"]);
 // it's empty" instead of just seeing normal category content. Keep this
 // set in sync with src/App.jsx and with HIDDEN_SUBCATEGORIES in
 // api/sitemap.xml.js.
-const HIDDEN_SUBCATEGORIES = new Set(["분양정보"]);
+const HIDDEN_SUBCATEGORIES = new Set(["분양정보", "오늘의 특징주", "중요공시/뉴스"]);
 
 // "오늘주식시세" isn't a post board (see STOCK_QUOTES_SUB in src/App.jsx) —
 // it's a live data table (musapan/src/StockQuotes.jsx) reading the
@@ -148,16 +148,37 @@ export default async function handler(req, res) {
   const sub = HIDDEN_SUBCATEGORIES.has(req.query.sub) ? null : (req.query.sub || null);
 
   const catInfo = CATEGORIES.find(c => c.id === category);
-  const isStockQuotes = category === "stock" && sub === STOCK_QUOTES_SUB;
+
+  // Posts first, so the plain 주식투자 view can fall back to the quotes page
+  // when it has nothing to list (mirrors showStockQuotes in src/App.jsx):
+  // every stock post was automation, now hidden from the anon key by the
+  // posts_select_visible RLS policy, so this would otherwise be a title over
+  // an empty list. The moment a real stock post exists this stays a normal
+  // listing. 오늘주식시세 itself never lists posts.
+  let posts = [];
+  if (!(category === "stock" && sub === STOCK_QUOTES_SUB)) {
+    if (category) {
+      const subFilter = sub ? `&subcategory=eq.${encodeURIComponent(sub)}` : "";
+      posts = await fetchPosts(`&category=eq.${encodeURIComponent(category)}${subFilter}`, 100);
+    } else {
+      posts = await fetchPosts("", 50);
+    }
+  }
+  const isStockQuotes = category === "stock" && (sub === STOCK_QUOTES_SUB || (!sub && posts.length === 0));
+
   const pageTitle = isStockQuotes
     ? "오늘의 주식시세 - 코스피 코스닥 전종목 시세 | 코리안에셋"
     : catInfo ? `${catInfo.name}${sub ? ` - ${sub}` : ""} | 코리안에셋` : "코리안에셋 - 주식, 부동산, 보험, 금융정보 커뮤니티";
   const pageDescription = isStockQuotes
     ? "코스피, 코스닥 전 종목의 오늘자 현재가, 전일대비, 등락률, 거래량을 장 마감 후 매일 업데이트합니다."
     : "주식, 부동산, 보험, 금융정보를 다루는 코리안에셋 커뮤니티입니다.";
-  const canonicalPath = category ? `/${category}${sub ? `/${slugify(sub)}` : ""}` : "/";
+  // /stock standing in for the quotes page is the same content as
+  // /stock/오늘주식시세 — point canonical at the real one so it isn't indexed
+  // as a duplicate.
+  const canonicalPath = isStockQuotes
+    ? `/stock/${slugify(STOCK_QUOTES_SUB)}`
+    : category ? `/${category}${sub ? `/${slugify(sub)}` : ""}` : "/";
 
-  let posts = [];
   let bodyHtml;
   let extraHead = "";
   if (isStockQuotes) {
@@ -165,12 +186,6 @@ export default async function handler(req, res) {
     bodyHtml = renderStockQuotesTable(quoteRows);
     extraHead = stockQuotesJsonLd(`${base}${canonicalPath}`, quoteRows[0]?.updated_at || null);
   } else {
-    if (category) {
-      const subFilter = sub ? `&subcategory=eq.${encodeURIComponent(sub)}` : "";
-      posts = await fetchPosts(`&category=eq.${encodeURIComponent(category)}${subFilter}`, 100);
-    } else {
-      posts = await fetchPosts("", 50);
-    }
     bodyHtml = `<ul>\n${renderList(base, posts)}\n</ul>`;
   }
 

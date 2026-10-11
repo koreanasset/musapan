@@ -24,7 +24,7 @@ const EXTRA_BOARD_PATHS = [`/stock/${slugify("오늘주식시세")}`];
 // and with HIDDEN_SUBCATEGORIES in api/list-meta.js — a post filed under one
 // of these must not be listed here, or the sitemap itself becomes the way a
 // crawler discovers a board this flag was meant to keep unseen.
-const HIDDEN_SUBCATEGORIES = new Set(["분양정보"]);
+const HIDDEN_SUBCATEGORIES = new Set(["분양정보", "오늘의 특징주", "중요공시/뉴스"]);
 
 // Posts noindexed by api/post-meta.js (daily-template automation, gated on
 // is_auto_generated so a real hand-written post in the same subcategory is
@@ -52,8 +52,14 @@ export default async function handler(req, res) {
     posts = [];
   }
 
+  // /stock only stands in for 오늘주식시세 (canonical points there) while it
+  // has no posts of its own — all its posts were automation, now hidden — so
+  // list it only once a real stock post exists; until then the real URL is
+  // already in EXTRA_BOARD_PATHS and listing both would be a duplicate.
+  const hasStockPosts = posts.some((p) => p.category === "stock" && !HIDDEN_SUBCATEGORIES.has(p.subcategory));
+
   const urls = [
-    ...STATIC_PATHS.map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
+    ...STATIC_PATHS.filter((p) => p !== "/stock" || hasStockPosts).map((p) => ({ loc: `${base}${p}`, priority: p === "/" ? "1.0" : "0.8" })),
     ...EXTRA_BOARD_PATHS.map((p) => ({ loc: `${base}${p}`, priority: "0.8" })),
     ...posts.filter((p) => !HIDDEN_SUBCATEGORIES.has(p.subcategory) && !(p.is_auto_generated && NOINDEX_SUBCATEGORIES.has(p.subcategory))).map((p) => {
       const path = p.subcategory ? `/${p.category}/${slugify(p.subcategory)}/${p.id}` : `/${p.category}/${p.id}`;

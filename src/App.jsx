@@ -42,7 +42,14 @@ const CATEGORIES = [
   // nav feels crowded with 5 items for a site this size. Real content, not
   // an empty-content issue — just un-hide once approved.
   { id: "hot", name: "실시간인기글", icon: Flame, color: "#ef4444", sub: ["오늘의 인기글", "주간 인기글", "댓글 많은 글"], hidden: true },
-  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: [STOCK_QUOTES_SUB, "오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["국내주식", "해외주식", "ETF, ETN", "주식토론방", "칼럼"] },
+  // 오늘의 특징주 / 중요공시/뉴스 hidden 2026-10-11 along with every other
+  // automation post (is_auto_generated posts are now hidden from everyone but
+  // master at the DB level — see the posts_select_visible RLS policy): AdSense
+  // kept rejecting the site as low-value content and Google stopped indexing
+  // even new hand-written posts, with ~77% of the site being automation. These
+  // two boards would just be empty tabs now. Keep in sync with
+  // HIDDEN_SUBCATEGORIES in api/list-meta.js and api/sitemap.xml.js.
+  { id: "stock", name: "주식투자", icon: TrendingUp, color: "#3b82f6", sub: [STOCK_QUOTES_SUB, "오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"], hiddenSubs: ["오늘의 특징주", "국내주식", "해외주식", "ETF, ETN", "중요공시/뉴스", "주식토론방", "칼럼"] },
   // 분양정보 hidden again 2026-09-02: AptAnnouncement/AptSubscription just
   // resumed but haven't accumulated posts yet (no matching apartment today),
   // and an empty board is exactly the "thin page" risk to avoid mid-AdSense
@@ -824,6 +831,16 @@ export default function App() {
       .filter(p => canListPost(p))
       .sort((a, b) => b.id - a.id);
   }
+
+  // 주식투자's only content right now is the 오늘주식시세 data page (every
+  // post it had was automation, now hidden — see the stock entry in
+  // CATEGORIES). Showing the quotes table in place of "게시물이 없습니다."
+  // when the plain 주식투자 view has nothing to list avoids an empty-looking
+  // board; the moment a real stock post exists, this goes false and the
+  // normal list takes over again. api/list-meta.js mirrors this for crawlers.
+  const showStockQuotes =
+    view.category === "stock" &&
+    (view.subcategory === STOCK_QUOTES_SUB || (!view.subcategory && postsByCategory("stock", null).length === 0));
 
   function realtimeHotPosts() {
     const since = Date.now() - 24 * 60 * 60 * 1000;
@@ -2036,7 +2053,7 @@ export default function App() {
                 </div>
               );
             })()}
-            {view.category === "stock" && view.subcategory === STOCK_QUOTES_SUB ? (
+            {showStockQuotes ? (
               <StockQuotes />
             ) : (
             <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
