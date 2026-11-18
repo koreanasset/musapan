@@ -2565,7 +2565,6 @@ export default function App() {
             <a href="/privacy" onClick={e => { e.preventDefault(); setView({ page: "legal", category: null, subcategory: null, postId: null, legal: "privacy" }); }} className="hover:text-white text-gray-300">개인정보처리방침</a>
             <button onClick={() => setLegalModal("ad")} className="hover:text-white">광고/제휴문의</button>
           </p>
-          <p className="mb-2">상호: 코리안에셋 · 대표자: 김수연 · 사업자등록번호: 313-09-71705</p>
           <p>© 2026 koreanAsset. All rights reserved.</p>
         </div>
       </footer>
@@ -2607,8 +2606,7 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-2">운영자 소개</p>
-                  <div className="flex items-start gap-4">
-                    <img src="/about-profile-square.jpg" alt="코리안에셋 운영자" className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-200" />
+                  <div>
                     <p>현직 보험설계사로 일하면서 고객들의 보험 상담과 청구 과정을 직접 다뤄왔습니다. 보험뿐 아니라 주식·부동산 분야에도 관심이 많아, 재테크 전반을 다루는 커뮤니티를 직접 개발·운영하고 있습니다. 개발자 출신이 아니라 보험 일을 하면서 독학으로 사이트를 만들었고, 그 과정도 자유게시판에 1인개발일지로 기록 중입니다.</p>
                   </div>
                 </div>
@@ -2637,10 +2635,6 @@ export default function App() {
                   <p className="mb-3">주식·부동산 관련 정보는 투자 권유가 아닌 정보 제공을 목적으로 합니다. 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.</p>
                   <p className="font-medium text-gray-700 mb-1">면책 안내</p>
                   <p>이 사이트의 모든 콘텐츠는 정보 제공을 목적으로 하며, 전문적인 법률·세무·금융 자문을 대체하지 않습니다. 중요한 금융 의사결정은 반드시 해당 분야 전문가와 직접 상담하시기 바랍니다.</p>
-                </div>
-                <div>
-                  <p className="font-bold text-gray-800 mb-2">사업자 정보</p>
-                  <p>상호: 코리안에셋<br/>대표자: 김수연<br/>사업자등록번호: 313-09-71705</p>
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 mb-1">문의</p>
@@ -2759,7 +2753,7 @@ export default function App() {
             )}
 
             <p className="text-xs text-gray-400 mt-6 border-t border-gray-100 pt-4">
-              문의사항은 <a href="mailto:rainbowcrow1234@gmail.com" className="text-indigo-600 hover:underline">rainbowcrow1234@gmail.com</a> 으로 연락주세요.
+              문의사항은 상단의 1:1문의를 이용해 주세요.
             </p>
           </div>
         </div>

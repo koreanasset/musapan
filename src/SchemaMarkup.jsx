@@ -25,13 +25,7 @@ export function OrganizationSchema() {
           "height": 200
         },
         "description": "주식투자, 부동산, 보험, 금융 정보를 나누는 재테크 커뮤니티. 현직 보험설계사가 운영합니다.",
-        "foundingDate": "2026-06-21",
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "contactType": "customer support",
-          "email": "rainbowcrow1234@gmail.com",
-          "availableLanguage": "Korean"
-        }
+        "foundingDate": "2026-06-21"
       },
       {
         "@type": "WebSite",
@@ -66,7 +60,6 @@ export function ProfilePageSchema() {
       "jobTitle": "보험설계사",
       "description": "현직 보험설계사이자 재테크 커뮤니티 코리안에셋 운영자. 생명보험·손해보험·제3보험 판매자격 및 증권투자권유대행인 자격 보유.",
       "url": `${SITE_URL}/about`,
-      "image": `${SITE_URL}/about-profile-square.jpg`,
       "worksFor": { "@id": `${SITE_URL}/#organization` },
       "hasCredential": [
         {
